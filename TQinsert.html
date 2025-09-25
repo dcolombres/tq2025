@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administración de Contenido - Tutti Quanti</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f4f7f9; margin: 0; padding: 2rem; }
+        .main-container { margin: auto; width: 100%; max-width: 700px; }
+        .container { background-color: #fff; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 1.5rem; }
+        h1, h2 { color: #333; text-align: center; margin-top: 0; margin-bottom: 1.5rem; }
+        .form-group { margin-bottom: 1rem; }
+        label { display: block; margin-bottom: 0.5rem; color: #555; font-weight: 600; }
+        input[type="text"], select, textarea { width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; font-size: 1rem; }
+        select:disabled { background-color: #eee; }
+        button { width: 100%; padding: 0.85rem; background-color: #007bff; color: white; border: none; border-radius: 4px; font-size: 1.1rem; font-weight: 600; cursor: pointer; transition: background-color 0.2s; }
+        button:hover { background-color: #0056b3; }
+        .status-message { margin-top: 1rem; text-align: center; font-weight: 600; padding: 0.75rem; border-radius: 4px; display: none; }
+        .status-success { background-color: #d4edda; color: #155724; }
+        .status-error { background-color: #f8d7da; color: #721c24; }
+        .collapsible-header { background-color: #f0f0f0; padding: 1rem; border-radius: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; }
+        .collapsible-header h2 { margin: 0; font-size: 1.2rem; text-align: left; }
+        .collapsible-header .icon::before { content: '►'; font-size: 0.8em; transition: transform 0.2s; }
+        .collapsible-header.active .icon::before { transform: rotate(90deg); }
+        .collapsible-content { padding: 1.5rem; border: 1px solid #f0f0f0; border-top: none; border-radius: 0 0 8px 8px; display: none; }
+        #stats-table { width: 100%; border-collapse: collapse; font-size: 1rem; }
+        #stats-table thead { background-color: var(--primary-color, #007bff); color: white; }
+        #stats-table th, #stats-table td { padding: 10px 12px; border: 1px solid #e0e0e0; text-align: left; }
+        #stats-table tbody tr:nth-child(even) { background-color: #f9f9f9; }
+        #stats-table tbody tr:hover { background-color: #f1f1f1; }
+    </style>
+</head>
+<body>
+
+<div class="main-container">
+    <div class="container">
+        <h1>Insertar Palabras</h1>
+        <form id="insert-form">
+            <div class="form-group">
+                <label for="categoria">1. Selecciona la Categoría Principal:</label>
+                <select id="categoria" name="categoria" required>
+                    <option value="">Cargando...</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="subcategoria">2. Selecciona la Subcategoría:</label>
+                <select id="subcategoria" name="subcategoria_id" required disabled>
+                    <option value="">Selecciona una categoría principal primero</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="palabras">3. Ingresa las Palabras (separadas por coma):</label>
+                <textarea id="palabras" name="palabras" required placeholder="Ej: Argentina, Alemania, Francia" rows="5"></textarea>
+            </div>
+            <button type="submit">Insertar Palabras</button>
+        </form>
+        <div id="status" class="status-message"></div>
+    </div>
+
+    <div class="collapsible-header" data-target="#create-structure-content">
+        <h2><span class="icon"></span> Crear Nueva Estructura (Avanzado)</h2>
+    </div>
+    <div id="create-structure-content" class="collapsible-content">
+        <p>Usa este formulario para crear nuevas categorías, niveles y subcategorías. Si escribes un nombre que ya existe, el sistema lo reutilizará.</p>
+        <form id="create-structure-form">
+            <div class="form-group">
+                <label for="new_categoria">Nombre de la Categoría Principal:</label>
+                <input type="text" id="new_categoria" name="categoria_principal" required placeholder="Ej: CLASICO, EXPANSION 2024">
+            </div>
+            <div class="form-group">
+                <label for="new_nivel">Nombre del Nivel:</label>
+                <input type="text" id="new_nivel" name="nivel" required placeholder="Ej: NIVEL 7, DEPORTES ACUATICOS">
+            </div>
+            <div class="form-group">
+                <label for="new_subcategoria">Nuevas Subcategorías (separadas por coma):</label>
+                <textarea id="new_subcategoria" name="subcategoria" required placeholder="Ej: NATACION, WATERPOLO, REMO" rows="3"></textarea>
+            </div>
+            <button type="submit">Crear Estructura</button>
+        </form>
+        <div id="structure-status" class="status-message"></div>
+    </div>
+
+    <div class="collapsible-header" data-target="#stats-content">
+        <h2><span class="icon"></span> Ver Estadísticas</h2>
+    </div>
+    <div id="stats-content" class="collapsible-content">
+        <table id="stats-table">
+            <thead>
+                <tr>
+                    <th>Categoría</th>
+                    <th>Nivel</th>
+                    <th>Subcategoría</th>
+                    <th>Cantidad de Palabras</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- Selectores de Elementos ---
+        const categoriaSelect = document.getElementById('categoria');
+        const subcategoriaSelect = document.getElementById('subcategoria');
+        const insertForm = document.getElementById('insert-form');
+        const statusDiv = document.getElementById('status');
+        const tableBody = document.querySelector('#stats-table tbody');
+        const structureForm = document.getElementById('create-structure-form');
+        const structureStatusDiv = document.getElementById('structure-status');
+
+        // --- Lógica para Secciones Colapsables ---
+        document.querySelectorAll('.collapsible-header').forEach(header => {
+            header.addEventListener('click', () => {
+                const content = document.querySelector(header.dataset.target);
+                header.classList.toggle('active');
+                if (content.style.display === "block") {
+                    content.style.display = "none";
+                } else {
+                    content.style.display = "block";
+                }
+            });
+        });
+
+        // --- Función para cargar la tabla de estadísticas ---
+        function loadStats() {
+            fetch('get_stats.php')
+                .then(response => response.json())
+                .then(data => {
+                    if (!tableBody) return;
+                    tableBody.innerHTML = ''; // Limpiar tabla antes de llenar
+
+                    if (data.length === 0) {
+                        const row = document.createElement('tr');
+                        const cell = document.createElement('td');
+                        cell.colSpan = 4;
+                        cell.textContent = 'No hay datos para mostrar.';
+                        cell.style.textAlign = 'center';
+                        row.appendChild(cell);
+                        tableBody.appendChild(row);
+                        return;
+                    }
+
+                    data.forEach(item => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${item.categoria}</td>
+                            <td>${item.nivel}</td>
+                            <td>${item.subcategoria}</td>
+                            <td style="text-align: center;">${item.cantidad_palabras}</td>
+                        `;
+                        tableBody.appendChild(row);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error al cargar las estadísticas:', error);
+                    if(tableBody) {
+                        tableBody.innerHTML = '<td colspan="4" style="text-align: center;">Error al cargar los datos.</td>';
+                    }
+                });
+        }
+
+        // --- Función para cargar el menú de Categorías Principales ---
+        function loadCategoriasDropdown() {
+            fetch('get_categorias.php')
+                .then(response => response.json())
+                .then(categorias => {
+                    const currentVal = categoriaSelect.value;
+                    categoriaSelect.innerHTML = '<option value="">Selecciona una categoría</option>';
+                    categorias.forEach(cat => {
+                        const option = document.createElement('option');
+                        option.value = cat.id;
+                        option.textContent = cat.nombre;
+                        if (cat.id == currentVal) {
+                            option.selected = true;
+                        }
+                        categoriaSelect.appendChild(option);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error cargando categorías:', error);
+                    categoriaSelect.innerHTML = '<option value="">Error al cargar</option>';
+                });
+        }
+
+        // --- Lógica del formulario de inserción de palabras ---
+        categoriaSelect.addEventListener('change', () => {
+            const categoriaId = categoriaSelect.value;
+            subcategoriaSelect.innerHTML = '<option value="">Cargando...</option>';
+            subcategoriaSelect.disabled = true;
+
+            if (!categoriaId) {
+                subcategoriaSelect.innerHTML = '<option value="">Selecciona una categoría principal primero</option>';
+                return;
+            }
+
+            fetch(`get_subcategorias.php?categoria_id=${categoriaId}`)
+                .then(response => response.json())
+                .then(subcategorias => {
+                    subcategoriaSelect.innerHTML = '<option value="">Selecciona una subcategoría</option>';
+                    if (subcategorias.length > 0) {
+                        subcategorias.forEach(subcat => {
+                            const option = document.createElement('option');
+                            option.value = subcat.id;
+                            option.textContent = subcat.nombre;
+                            subcategoriaSelect.appendChild(option);
+                        });
+                        subcategoriaSelect.disabled = false;
+                    } else {
+                        subcategoriaSelect.innerHTML = '<option value="">No hay subcategorías</option>';
+                    }
+                });
+        });
+
+        insertForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+            statusDiv.style.display = 'none';
+            const formData = new FormData(insertForm);
+
+            fetch('insert_word.php', { method: 'POST', body: formData })
+            .then(response => response.json())
+            .then(data => {
+                statusDiv.style.display = 'block';
+                if (data.success) {
+                    statusDiv.textContent = data.message;
+                    statusDiv.className = 'status-message status-success';
+                    insertForm.reset();
+                    subcategoriaSelect.innerHTML = '<option value="">Selecciona una categoría principal primero</option>';
+                    subcategoriaSelect.disabled = true;
+                    loadStats();
+                } else {
+                    statusDiv.textContent = 'Error: ' + data.message;
+                    statusDiv.className = 'status-message status-error';
+                }
+            })
+            .catch(error => {
+                statusDiv.style.display = 'block';
+                statusDiv.textContent = 'Ocurrió un error de red.';
+                statusDiv.className = 'status-message status-error';
+            });
+        });
+
+        // --- Lógica del formulario de creación de estructura ---
+        structureForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+            structureStatusDiv.style.display = 'none';
+            const formData = new FormData(structureForm);
+
+            const cacheBuster = 't=' + new Date().getTime();
+            fetch(`create_structure.php?${cacheBuster}`, { method: 'POST', body: formData })
+            .then(response => response.json())
+            .then(data => {
+                structureStatusDiv.style.display = 'block';
+                if (data.success) {
+                    structureStatusDiv.textContent = data.message + ' Los menús desplegables han sido actualizados.';
+                    structureStatusDiv.className = 'status-message status-success';
+                    structureForm.reset();
+                    loadStats();
+                    loadCategoriasDropdown();
+                } else {
+                    structureStatusDiv.textContent = 'Error: ' + data.message;
+                    structureStatusDiv.className = 'status-message status-error';
+                }
+            })
+            .catch(error => {
+                structureStatusDiv.style.display = 'block';
+                structureStatusDiv.textContent = 'Ocurrió un error de red.';
+                structureStatusDiv.className = 'status-message status-error';
+            });
+        });
+
+        // --- Cargas iniciales ---
+        loadCategoriasDropdown();
+        loadStats();
+    });
+</script>
+
+</body>
+</html>

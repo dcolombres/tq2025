@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Contenido - Tutti Quanti</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f4f7f9; margin: 0; padding: 2rem; }
+        .main-container { margin: auto; width: 100%; max-width: 900px; }
+        .container { background-color: #fff; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        h1 { color: #333; text-align: center; margin-bottom: 1.5rem; }
+        table { width: 100%; border-collapse: collapse; font-size: 1rem; }
+        thead { background-color: #3F2A56; color: white; }
+        th, td { padding: 12px 15px; border: 1px solid #e0e0e0; text-align: left; }
+        tbody tr:nth-child(even) { background-color: #f9f9f9; }
+        tbody tr:hover { background-color: #f1f1f1; }
+        .actions-cell { text-align: center; }
+        .actions-cell button { font-size: 0.8rem; padding: 5px 10px; margin: 0 3px; border-radius: 4px; cursor: pointer; border: 1px solid transparent; }
+        .btn-edit { background-color: #ffc107; color: #333; }
+        .btn-edit:hover { background-color: #e0a800; }
+        .btn-delete { background-color: #dc3545; color: white; }
+        .btn-delete:hover { background-color: #c82333; }
+
+        /* Estilos para el Modal de Edición */
+        .modal {
+            display: none; 
+            position: fixed; 
+            z-index: 1000; 
+            left: 0;
+            top: 0;
+            width: 100%; 
+            height: 100%; 
+            overflow: auto; 
+            background-color: rgba(0,0,0,0.4); 
+            padding-top: 60px;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto; 
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 8px;
+        }
+        .close-button {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close-button:hover, .close-button:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+<div class="main-container">
+    <div class="container">
+        <h2>Gestión de Categorías Principales</h2>
+        <table id="categorias-table">
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th class="actions-cell">Acciones</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <div class="container">
+        <h2>Gestión de Niveles</h2>
+        <table id="niveles-table">
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th class="actions-cell">Acciones</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <div class="container">
+        <h2>Gestión de Subcategorías</h2>
+        <table id="subcategorias-table">
+            <thead>
+                <tr>
+                    <th>Categoría</th>
+                    <th>Nivel</th>
+                    <th>Subcategoría</th>
+                    <th>Palabras</th>
+                    <th class="actions-cell">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Las filas se cargarán aquí dinámicamente -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- El Modal para Editar -->
+<div id="edit-modal" class="modal">
+  <div class="modal-content">
+    <span class="close-button">&times;</span>
+    <h2>Editar Nombre</h2>
+    <form id="edit-form">
+        <input type="hidden" id="edit-item-id" name="id">
+        <input type="hidden" id="edit-item-type" name="type">
+        <div class="form-group">
+            <label for="edit-item-name">Nuevo Nombre:</label>
+            <input type="text" id="edit-item-name" name="name" required>
+        </div>
+        <button type="submit">Guardar Cambios</button>
+    </form>
+  </div>
+</div>
+
+<script>
+        const categoriasTableBody = document.querySelector('#categorias-table tbody');
+        const nivelesTableBody = document.querySelector('#niveles-table tbody');
+        const subcategoriasTableBody = document.querySelector('#subcategorias-table tbody');
+
+        // --- Funciones de Carga de Tablas ---
+        function loadCategoriasTable() {
+            fetch('get_items.php?type=categoria')
+                .then(res => res.json())
+                .then(data => {
+                    categoriasTableBody.innerHTML = '';
+                    data.forEach(item => {
+                        const row = document.createElement('tr');
+                        row.dataset.id = item.id;
+                        row.innerHTML = `
+                            <td>${item.nombre}</td>
+                            <td class="actions-cell">
+                                <button class="btn-edit" data-type="categoria">Editar</button>
+                                <button class="btn-delete" data-type="categoria">Eliminar</button>
+                            </td>
+                        `;
+                        categoriasTableBody.appendChild(row);
+                    });
+                });
+        }
+
+        function loadNivelesTable() {
+            fetch('get_items.php?type=nivel')
+                .then(res => res.json())
+                .then(data => {
+                    nivelesTableBody.innerHTML = '';
+                    data.forEach(item => {
+                        const row = document.createElement('tr');
+                        row.dataset.id = item.id;
+                        row.innerHTML = `
+                            <td>${item.nombre}</td>
+                            <td class="actions-cell">
+                                <button class="btn-edit" data-type="nivel">Editar</button>
+                                <button class="btn-delete" data-type="nivel">Eliminar</button>
+                            </td>
+                        `;
+                        nivelesTableBody.appendChild(row);
+                    });
+                });
+        }
+
+        function loadSubcategoriasTable() {
+            fetch('get_stats.php')
+                .then(response => response.json())
+                .then(data => {
+                    subcategoriasTableBody.innerHTML = ''; // Limpiar tabla
+                    if (data.length === 0) {
+                        subcategoriasTableBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No hay datos para mostrar.</td></tr>';
+                        return;
+                    }
+                    data.forEach(item => {
+                        const row = document.createElement('tr');
+                        row.dataset.id = item.subcategoria_id; 
+                        row.innerHTML = `
+                            <td>${item.categoria}</td>
+                            <td>${item.nivel}</td>
+                            <td>${item.subcategoria}</td>
+                            <td style="text-align:center;">${item.cantidad_palabras}</td>
+                            <td class="actions-cell">
+                                <button class="btn-edit" data-type="subcategory">Editar</button>
+                                <button class="btn-delete" data-type="subcategory">Eliminar</button>
+                            </td>
+                        `;
+                        subcategoriasTableBody.appendChild(row);
+                    });
+                });
+        }
+
+        // --- Lógica de Eventos (Delegada al contenedor principal) ---
+        document.querySelector('.main-container').addEventListener('click', (event) => {
+            const target = event.target;
+            if (!target.classList.contains('btn-edit') && !target.classList.contains('btn-delete')) return;
+
+            const row = target.closest('tr');
+            if (!row) return;
+
+            const itemType = target.dataset.type;
+            const itemId = row.dataset.id;
+            const itemName = row.cells[0].textContent;
+            const isSubcategory = itemType === 'subcategory';
+            const subcategoryName = isSubcategory ? row.cells[2].textContent : itemName;
+
+            // Lógica para Eliminar
+            if (target.classList.contains('btn-delete')) {
+                const confirmMessage = isSubcategory 
+                    ? `¿Estás seguro de que quieres eliminar la subcategoría "${subcategoryName}" y todas sus palabras?`
+                    : `ATENCIÓN: ¿Estás seguro de que quieres eliminar '${itemName}'? Se borrarán TODOS los niveles, subcategorías y palabras que contenga. Esta acción es irreversible.`;
+
+                if (confirm(confirmMessage)) {
+                    fetch(`delete_item.php?type=${itemType}&id=${itemId}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                // Recargar todas las tablas para reflejar los cambios en cascada
+                                loadAllTables();
+                            } else {
+                                alert('Error al eliminar: ' + data.message);
+                            }
+                        })
+                        .catch(error => alert('Ocurrió un error de red.'));
+                }
+            }
+
+            // Lógica para Editar
+            if (target.classList.contains('btn-edit')) {
+                const nameToEdit = isSubcategory ? row.cells[2].textContent : itemName;
+                document.getElementById('edit-item-id').value = itemId;
+                document.getElementById('edit-item-type').value = itemType;
+                document.getElementById('edit-item-name').value = nameToEdit;
+                modal.style.display = "block";
+            }
+        });
+
+        // --- Lógica del Modal de Edición ---
+        const modal = document.getElementById('edit-modal');
+        const closeModal = document.querySelector('.close-button');
+        const editForm = document.getElementById('edit-form');
+
+        closeModal.onclick = () => modal.style.display = "none";
+        window.onclick = (event) => {
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
+        }
+
+        editForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+            const formData = new FormData(editForm);
+
+            fetch('edit_item.php', { method: 'POST', body: formData })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        loadAllTables();
+                        modal.style.display = "none";
+                    } else {
+                        alert('Error al editar: ' + data.message);
+                    }
+                })
+                .catch(error => alert('Ocurrió un error de red.'));
+        });
+
+        function loadAllTables() {
+            loadCategoriasTable();
+            loadNivelesTable();
+            loadSubcategoriasTable();
+        }
+
+        // Carga inicial de todas las tablas
+        loadAllTables();
+</script>
+
+</body>
+</html>

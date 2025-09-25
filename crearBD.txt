@@ -1,0 +1,53 @@
+-- SQL Script para la base de datos de Tutti Quanti
+--
+-- Base de datos: tuttiquanti
+--
+-- 1. Tabla de Categorías Principales (Ej: Clásicos, Expansión 2024)
+
+CREATE TABLE Categorias (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(255) NOT NULL
+);
+
+-- 2. Tabla de Niveles (Ej: NIVEL 1, NIVEL 2, ARGENTINA)
+
+CREATE TABLE Niveles (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(255) NOT NULL UNIQUE
+);
+
+-- 3. Tabla de Subcategorías (Ej: PAÍSES, ANIMALES, etc.)
+
+CREATE TABLE Subcategorias (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(255) NOT NULL,
+    categoria_id INT,
+    nivel_id INT,
+    FOREIGN KEY (categoria_id) REFERENCES Categorias(id),
+    FOREIGN KEY (nivel_id) REFERENCES Niveles(id)
+);
+
+-- 4. Tabla de Palabras Válidas
+
+CREATE TABLE Palabras (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    palabra VARCHAR(255) NOT NULL,
+    letra CHAR(2) NOT NULL, -- Se usa CHAR(2) para contemplar letras como 'Ñ'
+    subcategoria_id INT,
+    categoria_id INT, -- Aunque puede ser redundante, está presente en los scripts de inserción
+    FOREIGN KEY (subcategoria_id) REFERENCES Subcategorias(id),
+    FOREIGN KEY (categoria_id) REFERENCES Categorias(id),
+    UNIQUE KEY `palabra_unica` (`palabra`, `subcategoria_id`)
+);
+
+-- --- EJEMPLOS DE INSERCIÓN ---
+
+-- Insertar categorías principales
+-- INSERT INTO Categorias (nombre) VALUES ('Clásicos'), ('Expansión 2024');
+
+-- Insertar subcategorías (asumiendo que 'Clásicos' tiene id=1)
+-- INSERT INTO Subcategorias (nombre, categoria_id) VALUES ('PAÍSES', 1), ('ANIMALES', 1);
+
+-- Insertar palabras (asumiendo que 'PAÍSES' tiene id=1 y 'Clásicos' tiene id=1)
+-- INSERT INTO Palabras (palabra, letra, subcategoria_id, categoria_id) VALUES ('Argentina', 'A', 1, 1), ('Alemania', 'A', 1, 1);
+-- INSERT INTO Palabras (palabra, letra, subcategoria_id, categoria_id) VALUES ('Ballena', 'B', 2, 1), ('Burro', 'B', 2, 1);
