@@ -1,0 +1,33 @@
+<?php
+header('Content-Type: application/json');
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
+// --- Configuración de la Base de Datos Local ---
+$servername = "localhost";
+$username = "root";
+$password = "";
+$dbname = "tuttiquanti";
+// -----------------------------------------
+
+$conn = new mysqli($servername, $username, $password, $dbname);
+
+if ($conn->connect_error) {
+    http_response_code(500);
+    die(json_encode(["error" => "Conexión fallida: " . $conn->connect_error]));
+}
+
+$sql = "SELECT id, nombre FROM Categorias ORDER BY nombre ASC";
+$result = $conn->query($sql);
+
+$categorias = [];
+if ($result->num_rows > 0) {
+    while ($row = $result->fetch_assoc()) {
+        $categorias[] = $row;
+    }
+}
+
+echo json_encode($categorias);
+
+$conn->close();
+?>
