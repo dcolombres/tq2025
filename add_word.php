@@ -3,12 +3,7 @@ header('Content-Type: application/json');
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-// --- Configuración de la Base de Datos ---
-$servername = "localhost";
-$username = "root";
-$password = "";
-$dbname = "tuttiquanti";
-// -----------------------------------------
+require_once 'db_config.php';
 
 function send_json_error($message) {
     http_response_code(400);

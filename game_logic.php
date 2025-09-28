@@ -3,11 +3,7 @@ header('Content-Type: application/json');
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-// --- Database Connection ---
-$servername = "localhost";
-$username = "tuttiquanti";
-$password = "tuttiquanti";
-$dbname = "tuttiquanti";
+require_once 'db_config.php';
 
 $conn = new mysqli($servername, $username, $password, $dbname);
 

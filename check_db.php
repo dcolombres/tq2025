@@ -3,12 +3,7 @@
       ini_set('display_errors', 1);
       error_reporting(E_ALL);
 
-      // Mismos datos de conexión que en tu juego
-      $servername = "localhost";
-      $username = "tuttiquanti";
-      $password = "tuttiquanti";
-      $dbname = "tuttiquanti";
-
+      require_once 'db_config.php';
       echo "<h1>Prueba de Conexión a la Base de Datos</h1>";
 
       // Intentar conectar
