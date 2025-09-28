@@ -55,7 +55,7 @@
         </div>
         <div class="container">
             <h2>Subcategorías</h2>
-            <table id="subcategorias-table"><thead><tr><th>Categoría</th><th>Nivel</th><th>Subcategoría</th><th>Palabras</th><th class="actions-cell">Acciones</th></tr></thead><tbody></tbody></table>
+            <table id="subcategorias-table"><thead><tr><th>Categoría</th><th>Nivel</th><th>Subcategoría</th><th>Palabras</th><th style="text-align:center;">Valid. Externa</th><th class="actions-cell">Acciones</th></tr></thead><tbody></tbody></table>
         </div>
     </div>
 </div>
@@ -133,13 +133,14 @@
         fetch('get_stats.php').then(response => response.json()).then(data => {
             subcategoriasTableBody.innerHTML = '';
             if (data.length === 0) {
-                subcategoriasTableBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No hay datos para mostrar.</td></tr>';
+                subcategoriasTableBody.innerHTML = '<tr><td colspan="6" style="text-align:center;">No hay datos para mostrar.</td></tr>';
                 return;
             }
             data.forEach(item => {
                 const row = document.createElement('tr');
                 row.dataset.id = item.subcategoria_id;
-                row.innerHTML = `<td>${item.categoria}</td><td>${item.nivel}</td><td>${item.subcategoria}</td><td style="text-align:center;">${item.cantidad_palabras}</td><td class="actions-cell"><button class="btn-manage"><i class="fas fa-tasks"></i> Gestionar</button> <button class="btn-edit" data-type="subcategory"><i class="fas fa-pencil-alt"></i></button> <button class="btn-delete" data-type="subcategory"><i class="fas fa-trash-alt"></i></button></td>`;
+                const checkedAttribute = item.permite_validacion_externa == 1 ? 'checked' : '';
+                row.innerHTML = `<td>${item.categoria}</td><td>${item.nivel}</td><td>${item.subcategoria}</td><td style="text-align:center;">${item.cantidad_palabras}</td><td style="text-align:center;"><input type="checkbox" class="validation-checkbox" data-id="${item.subcategoria_id}" ${checkedAttribute}></td><td class="actions-cell"><button class="btn-manage"><i class="fas fa-tasks"></i> Gestionar</button> <button class="btn-edit" data-type="subcategory"><i class="fas fa-pencil-alt"></i></button> <button class="btn-delete" data-type="subcategory"><i class="fas fa-trash-alt"></i></button></td>`;
                 subcategoriasTableBody.appendChild(row);
             });
         });
@@ -247,6 +248,39 @@
             } else {
                 loadWordsTable(currentSubcategoryId); // Revertir si no hay cambios
             }
+        }
+    });
+
+    // --- Checkbox Event Listener ---
+    subcategoriasTableBody.addEventListener('change', (event) => {
+        if (event.target.classList.contains('validation-checkbox')) {
+            const checkbox = event.target;
+            const subcategoryId = checkbox.dataset.id;
+            const isChecked = checkbox.checked;
+
+            const originalColor = checkbox.closest('tr').style.backgroundColor;
+
+            fetch('update_validation_flag.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ subcategoria_id: subcategoryId, is_checked: isChecked })
+            })
+            .then(res => res.json())
+            .then(data => {
+                const row = checkbox.closest('tr');
+                if (data.success) {
+                    row.style.backgroundColor = '#d4edda'; // Light green for success
+                    setTimeout(() => { row.style.backgroundColor = originalColor; }, 2000);
+                } else {
+                    alert('Error al guardar el cambio: ' + data.message);
+                    row.style.backgroundColor = '#f8d7da'; // Light red for error
+                    setTimeout(() => { loadSubcategoriasTable(); }, 2000); // Reload to revert state
+                }
+            })
+            .catch(err => {
+                alert('Error de red. No se pudo guardar el cambio.');
+                loadSubcategoriasTable();
+            });
         }
     });
 

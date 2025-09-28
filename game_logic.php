@@ -70,6 +70,78 @@ function getRandomCategory($conn) {
 /**
  * Validates a word against the database for a given subcategory and letter.
  */
+/**
+ * Validates a word using the Wikipedia API.
+ *
+ * @param string $word The word to validate.
+ * @param string $gameCategory The name of the game's subcategory for context.
+ * @return bool True if the word is valid and relevant, false otherwise.
+ */
+function validateWithWikipedia($word, $gameCategory) {
+    $apiUrl = "https://es.wikipedia.org/w/api.php";
+
+    // --- Step 1: Search for the article to get the exact title ---
+    $searchParams = http_build_query([
+        "action" => "query",
+        "list" => "search",
+        "srsearch" => $word,
+        "format" => "json",
+        "srlimit" => 1,
+        "utf8" => 1
+    ]);
+
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $apiUrl . "?" . $searchParams);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    $searchResult = curl_exec($ch);
+    curl_close($ch);
+
+    $searchData = json_decode($searchResult, true);
+
+    if (empty($searchData['query']['search'])) {
+        return false; // No article found
+    }
+    $pageTitle = $searchData['query']['search'][0]['title'];
+
+    // --- Step 2: Get the categories for that article ---
+    $categoryParams = http_build_query([
+        "action" => "query",
+        "titles" => $pageTitle,
+        "prop" => "categories",
+        "format" => "json",
+        "cllimit" => "max",
+        "utf8" => 1
+    ]);
+
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $apiUrl . "?" . $categoryParams);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    $categoryResult = curl_exec($ch);
+    curl_close($ch);
+
+    $categoryData = json_decode($categoryResult, true);
+    $pages = $categoryData['query']['pages'];
+    $pageId = array_key_first($pages);
+
+    if (!isset($pages[$pageId]['categories'])) {
+        return false; // Article has no categories
+    }
+
+    // --- Step 3: Check if any Wikipedia category matches the game category ---
+    foreach ($pages[$pageId]['categories'] as $category) {
+        $wikiCategoryTitle = str_replace("Categoría:", "", $category['title']);
+        // Use case-insensitive comparison to see if the game category is part of the Wikipedia category
+        if (stripos($wikiCategoryTitle, $gameCategory) !== false) {
+            return true; // Found a relevant category
+        }
+    }
+
+    return false; // No relevant categories found
+}
+
+/**
+ * Validates a word against the database for a given subcategory and letter.
+ */
 function validateWord($conn) {
     $input = json_decode(file_get_contents('php://input'), true);
 
@@ -83,17 +155,14 @@ function validateWord($conn) {
         return;
     }
 
-    // Normalize letter and first character of the word for comparison
     $firstChar = mb_substr($word, 0, 1, 'UTF-8');
     if (strcasecmp($firstChar, $letter) !== 0) {
         echo json_encode(['status' => 'INCORRECTO', 'explanation' => 'La palabra no comienza con la letra correcta.']);
         return;
     }
 
-    // Prepare statement to check if the word exists for the given subcategory
     $sql = "SELECT palabra FROM Palabras WHERE subcategoria_id = ? AND palabra = ?";
     $stmt = $conn->prepare($sql);
-    
     if (!$stmt) {
         die(json_encode(["error" => "Error preparing statement: " . $conn->error]));
     }
@@ -105,11 +174,56 @@ function validateWord($conn) {
     if ($result->num_rows > 0) {
         $dbWord = $result->fetch_assoc()['palabra'];
         echo json_encode([
-            'status' => 'CORRECTO', 
-            'explanation' => "Palabra válida: " . $dbWord
+            'status' => 'CORRECTO',
+            'explanation' => "Palabra válida: " . $dbWord,
+            'source' => 'Base de Datos'
         ]);
     } else {
-        // Word not found, check for typos (Levenshtein distance)
+        // Word not found in DB. Proceed with external validation or typo checking.
+
+        if ($allows_external_validation) {
+            // --- External Validation Flow ---
+
+            // 1. Get Subcategory Name for context
+            $stmt_cat = $conn->prepare("SELECT nombre FROM Subcategorias WHERE id = ?");
+            $stmt_cat->bind_param("i", $subcategoryId);
+            $stmt_cat->execute();
+            $result_cat = $stmt_cat->get_result();
+            $subcategoryName = $result_cat->fetch_assoc()['nombre'] ?? '';
+            $stmt_cat->close();
+
+            if ($subcategoryName) {
+                // 2. Wikipedia Validation
+                if (validateWithWikipedia($word, $subcategoryName)) {
+                    echo json_encode([
+                        'status' => 'VALIDADO_EXTERNAMENTE',
+                        'explanation' => 'Palabra validada por Wikipedia.',
+                        'source' => 'Wikipedia'
+                    ]);
+                    return;
+                }
+            }
+
+            // 3. RAE Validation
+            $rae_api_url = "http://api.rae-api.com./word/" . urlencode(strtolower($word));
+            $ch_rae = curl_init($rae_api_url);
+            curl_setopt($ch_rae, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch_rae, CURLOPT_FOLLOWLOCATION, true);
+            curl_exec($ch_rae);
+            $http_code = curl_getinfo($ch_rae, CURLINFO_HTTP_CODE);
+            curl_close($ch_rae);
+
+            if ($http_code == 200) {
+                echo json_encode([
+                    'status' => 'VALIDADO_EXTERNAMENTE',
+                    'explanation' => 'Palabra encontrada en la RAE (relevancia no verificada).',
+                    'source' => 'RAE'
+                ]);
+                return;
+            }
+        }
+
+        // --- Typo Checking (Levenshtein) as a last resort ---
         $sql_similar = "SELECT palabra FROM Palabras WHERE subcategoria_id = ? AND palabra LIKE ?";
         $stmt_similar = $conn->prepare($sql_similar);
         if (!$stmt_similar) {
@@ -131,6 +245,7 @@ function validateWord($conn) {
                 $best_match = $row['palabra'];
             }
         }
+        $stmt_similar->close();
 
         if ($best_match !== null) {
             echo json_encode([
@@ -138,65 +253,12 @@ function validateWord($conn) {
                 'explanation' => 'Casi! Quisiste decir: ' . $best_match . '?'
             ]);
         } else {
-            // Final check: external validation if allowed by the category
-            if ($allows_external_validation) {
-                
-                // =====================================================================================
-                // DOCUMENTACIÓN PARA FUTURO DESARROLLADOR: INICIO
-                // =====================================================================================
-
-                // PASO 1: VERIFICAR EXISTENCIA DE LA PALABRA EN LA RAE (usando cURL)
-                // Se usa cURL por ser más robusto que get_headers en entornos locales como XAMPP.
-                
-                $rae_api_url = "http://api.rae-api.com./word/" . urlencode(strtolower($word)); // Se convierte a minúsculas y se añade un punto al dominio.
-                
-                $ch = curl_init($rae_api_url);
-                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-                curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-                curl_exec($ch);
-                $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-                curl_close($ch);
-
-                if ($http_code == 200) {
-                    // La palabra existe en la RAE. Ahora procedemos a verificar la relevancia.
-
-                    // PASO 2: VERIFICAR RELEVANCIA CON UN MODELO DE LENGUAJE (IA)
-                    // Esta sección debe ser implementada con una llamada a un servicio como Gemini, GPT, etc.
-                    // El objetivo es preguntarle al modelo si la palabra es contextualmente correcta para la categoría.
-                    
-                    // EJEMPLO DE IMPLEMENTACIÓN FUTURA:
-                    // 1. Obtener el nombre de la categoría de la base de datos usando $subcategoryId.
-                    // 2. Construir un prompt: "En la categoría 'Animales', ¿es la palabra 'árbol' una respuesta válida? Responde solo con un JSON: {\"esValida\": boolean}"
-                    // 3. Realizar la llamada a la API del modelo de lenguaje con ese prompt.
-                    // 4. Analizar la respuesta JSON y si "esValida" es true, devolver el estado VALIDADO_EXTERNAMENTE.
-
-                    // POR AHORA, SIMULAMOS QUE LA RESPUESTA SIEMPRE ES RELEVANTE PARA DEMOSTRAR EL FLUJO.
-                    echo json_encode([
-                        'status' => 'VALIDADO_EXTERNAMENTE',
-                        'explanation' => 'Palabra OK por RAE (relevancia simulada).'
-                    ]);
-
-                } else {
-                    // La palabra no fue encontrada en el diccionario de la RAE (código HTTP no fue 200).
-                    echo json_encode([
-                        'status' => 'INCORRECTO',
-                        'explanation' => 'La palabra no supero las verificaciones de la base de datos ni de fuentes externas'
-                    ]);
-                }
-
-                // =====================================================================================
-                // DOCUMENTACIÓN PARA FUTURO DESARROLLADOR: FIN
-                // =====================================================================================
-
-            } else {
-                // La validación externa no está permitida para esta categoría.
-                echo json_encode([
-                    'status' => 'INCORRECTO',
-                    'explanation' => 'La palabra no se encontró en esta categoría.'
-                ]);
-            }
+            // Nothing worked, the word is incorrect.
+            echo json_encode([
+                'status' => 'INCORRECTO',
+                'explanation' => 'La palabra no se encontró en la base de datos ni en fuentes externas.'
+            ]);
         }
-        $stmt_similar->close();
     }
     $stmt->close();
 }

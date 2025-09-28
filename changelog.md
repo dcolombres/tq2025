@@ -7,6 +7,11 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/en/1.0.
 ## [Unreleased]
 
 ### Added
+- **Modo Editor:**
+  - Permite incorporar palabras que se usaron para jugar una vez finalizada la ronda.
+  - Requiere que la URL del modo editor esté activa.
+- **Accesos Directos:**
+  - Se incorporaron accesos directos a `gestion.html` y `TQinsert.html`.
 - **Sistema de Validación Externa (Tolerancia a Errores de Tipeo):**
   - Se implementó una lógica de tolerancia para errores de tipeo menores en `game_logic.php`.
   - Si una palabra no se encuentra en la base de datos, el sistema ahora busca palabras similares usando la distancia de Levenshtein.
@@ -35,4 +40,3 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/en/1.0.
   - Se reemplazó la función `get_headers` por una implementación más robusta con `cURL` en `game_logic.php` para mejorar la compatibilidad con entornos locales como XAMPP.
   - Se corrigió un problema de resolución de DNS (`Could not resolve host`) causado por sufijos de dominio locales. La URL de la API fue modificada para usar un Nombre de Dominio Completo (FQDN) añadiendo un punto al final del dominio (ej. `api.rae-api.com.`).
   - Como último paso de diagnóstico, se cambió el protocolo de la API de `https` a `http` para descartar problemas de configuración de SSL en XAMPP.
-
