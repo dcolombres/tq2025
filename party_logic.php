@@ -22,7 +22,7 @@ $stmt = null;
 if ($mode === 'party') {
     // 1. Find the ID of the 'PARTY' main category
     $category_name = 'PARTY';
-    $stmt_cat = $conn->prepare("SELECT id FROM Categorias WHERE nombre = ?");
+    $stmt_cat = $conn->prepare("SELECT id FROM categorias WHERE nombre = ?");
     $stmt_cat->bind_param("s", $category_name);
     $stmt_cat->execute();
     $result_cat = $stmt_cat->get_result();
@@ -36,8 +36,8 @@ if ($mode === 'party') {
 
     // 2. Fetch a random subcategory from the 'PARTY' main category
     $sql = "SELECT s.nombre AS subcategoria, n.nombre as nivel 
-            FROM Subcategorias s
-            JOIN Niveles n ON s.nivel_id = n.id
+            FROM subcategorias s
+            JOIN niveles n ON s.nivel_id = n.id
             WHERE s.categoria_id = ? 
             ORDER BY RAND() 
             LIMIT 1";
@@ -47,8 +47,8 @@ if ($mode === 'party') {
 } else { // 'all' mode
     // Fetch a random subcategory from the entire database
     $sql = "SELECT s.nombre AS subcategoria, n.nombre as nivel 
-            FROM Subcategorias s
-            JOIN Niveles n ON s.nivel_id = n.id
+            FROM subcategorias s
+            JOIN niveles n ON s.nivel_id = n.id
             ORDER BY RAND() 
             LIMIT 1";
     $stmt = $conn->prepare($sql);

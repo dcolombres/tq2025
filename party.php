@@ -181,12 +181,18 @@
             height: auto;
         }
 
+        .logo-container a {
+            text-decoration: none;
+        }
+
     </style>
 </head>
 <body>
     <div class="container">
         <div class="logo-container">
-            <img src="https://moroarte.com/wp-content/uploads/2023/09/logoTUTTIQUANTI-154x300.png" alt="Tutti Quanti Logo" class="logo">
+            <a href="index.html">
+                <img src="https://moroarte.com/wp-content/uploads/2023/09/logoTUTTIQUANTI-154x300.png" alt="Tutti Quanti Logo" class="logo">
+            </a>
         </div>
         <h1>🎯 PARTY</h1>
         
