@@ -33,7 +33,7 @@ if ($conn->connect_error) {
 $conn->set_charset("utf8");
 
 // Verificar si la palabra ya existe en esa subcategoría
-$stmt_check = $conn->prepare("SELECT id FROM Palabras WHERE subcategoria_id = ? AND palabra = ?");
+$stmt_check = $conn->prepare("SELECT id FROM palabras WHERE subcategoria_id = ? AND palabra = ?");
 if (!$stmt_check) send_json_error("Error al preparar la verificación de duplicados.");
 $stmt_check->bind_param("is", $subcategoria_id, $palabra);
 $stmt_check->execute();
@@ -44,7 +44,7 @@ if ($stmt_check->get_result()->fetch_assoc()) {
 $stmt_check->close();
 
 // Insertar la nueva palabra
-$stmt_insert = $conn->prepare("INSERT INTO Palabras (subcategoria_id, palabra) VALUES (?, ?)");
+$stmt_insert = $conn->prepare("INSERT INTO palabras (subcategoria_id, palabra) VALUES (?, ?)");
 if (!$stmt_insert) send_json_error("Error al preparar la inserción.");
 $stmt_insert->bind_param("is", $subcategoria_id, $palabra);
 

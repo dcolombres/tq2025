@@ -21,13 +21,13 @@ $sql = "
         s.nombre AS subcategoria, 
         COUNT(p.id) AS cantidad_palabras
     FROM 
-        Subcategorias s
+        subcategorias s
     JOIN 
-        Categorias c ON s.categoria_id = c.id
+        categorias c ON s.categoria_id = c.id
     LEFT JOIN
-        Niveles n ON s.nivel_id = n.id
+        niveles n ON s.nivel_id = n.id
     LEFT JOIN 
-        Palabras p ON s.id = p.subcategoria_id
+        palabras p ON s.id = p.subcategoria_id
     GROUP BY 
         s.id, c.nombre, n.nombre, s.nombre
     ORDER BY 

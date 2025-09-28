@@ -33,7 +33,7 @@ if ($conn->connect_error) {
 $conn->set_charset("utf8");
 
 // Opcional: Verificar si la nueva palabra ya existe en la misma subcategoría (excluyendo la palabra actual)
-$stmt_check = $conn->prepare("SELECT id FROM Palabras WHERE palabra = ? AND subcategoria_id = (SELECT subcategoria_id FROM Palabras WHERE id = ?) AND id != ?");
+$stmt_check = $conn->prepare("SELECT id FROM palabras WHERE palabra = ? AND subcategoria_id = (SELECT subcategoria_id FROM palabras WHERE id = ?) AND id != ?");
 if (!$stmt_check) send_json_error("Error al preparar la verificación de duplicados.");
 $stmt_check->bind_param("sii", $new_palabra, $word_id, $word_id);
 $stmt_check->execute();
@@ -44,7 +44,7 @@ if ($stmt_check->get_result()->fetch_assoc()) {
 $stmt_check->close();
 
 // Proceder con la actualización
-$stmt_update = $conn->prepare("UPDATE Palabras SET palabra = ? WHERE id = ?");
+$stmt_update = $conn->prepare("UPDATE palabras SET palabra = ? WHERE id = ?");
 if (!$stmt_update) send_json_error("Error al preparar la actualización.");
 $stmt_update->bind_param("si", $new_palabra, $word_id);
 
