@@ -3,7 +3,7 @@ header('Content-Type: application/json');
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-require_once 'db_config.php';
+require_once __DIR__ . '/db_config.php';
 
 $conn = new mysqli($servername, $username, $password, $dbname);
 
