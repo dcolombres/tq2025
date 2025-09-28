@@ -13,61 +13,75 @@ if ($conn->connect_error) {
 }
 $conn->set_charset("utf8");
 
-// Determine game mode: 'party' for specific categories, or 'all' for everything.
-$mode = $_GET['mode'] ?? 'party'; 
+$mode = $_GET['mode'] ?? 'party';
+$party_category_id = null;
 
-$sql = "";
-$stmt = null;
-
+// --- Step 1: Count the total number of eligible rows ---
+$count_sql = "";
 if ($mode === 'party') {
-    // 1. Find the ID of the 'PARTY' main category
     $category_name = 'PARTY';
     $stmt_cat = $conn->prepare("SELECT id FROM categorias WHERE nombre = ?");
     $stmt_cat->bind_param("s", $category_name);
     $stmt_cat->execute();
     $result_cat = $stmt_cat->get_result();
-
     if ($result_cat->num_rows === 0) {
         http_response_code(404);
-        die(json_encode(["error" => "La categoría principal 'PARTY' no fue encontrada en la base de datos."]));
+        die(json_encode(["error" => "La categoría principal 'PARTY' no fue encontrada."]));
     }
     $party_category_id = $result_cat->fetch_assoc()['id'];
     $stmt_cat->close();
+    
+    $count_sql = "SELECT COUNT(*) as total FROM subcategorias WHERE categoria_id = ?";
+    $count_stmt = $conn->prepare($count_sql);
+    $count_stmt->bind_param("i", $party_category_id);
+} else {
+    $count_sql = "SELECT COUNT(*) as total FROM subcategorias";
+    $count_stmt = $conn->prepare($count_sql);
+}
 
-    // 2. Fetch a random subcategory from the 'PARTY' main category
+$count_stmt->execute();
+$count_result = $count_stmt->get_result()->fetch_assoc();
+$total_rows = $count_result['total'];
+$count_stmt->close();
+
+if ($total_rows == 0) {
+    http_response_code(404);
+    die(json_encode(["error" => "No se encontraron subcategorías para el modo seleccionado."]));
+}
+
+// --- Step 2: Generate a random offset ---
+$random_offset = rand(0, $total_rows - 1);
+
+// --- Step 3: Fetch the single random row using the offset ---
+$sql = "";
+if ($mode === 'party') {
     $sql = "SELECT s.nombre AS subcategoria, n.nombre as nivel 
-            FROM subcategorias s
-            JOIN niveles n ON s.nivel_id = n.id
+            FROM subcategorias s JOIN niveles n ON s.nivel_id = n.id
             WHERE s.categoria_id = ? 
-            ORDER BY RAND() 
-            LIMIT 1";
+            LIMIT 1 OFFSET ?";
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("i", $party_category_id);
-
-} else { // 'all' mode
-    // Fetch a random subcategory from the entire database
+    $stmt->bind_param("ii", $party_category_id, $random_offset);
+} else {
     $sql = "SELECT s.nombre AS subcategoria, n.nombre as nivel 
-            FROM subcategorias s
-            JOIN niveles n ON s.nivel_id = n.id
-            ORDER BY RAND() 
-            LIMIT 1";
+            FROM subcategorias s JOIN niveles n ON s.nivel_id = n.id
+            LIMIT 1 OFFSET ?";
     $stmt = $conn->prepare($sql);
+    $stmt->bind_param("i", $random_offset);
 }
 
 if (!$stmt) {
     http_response_code(500);
-    die(json_encode(['error' => 'Error al preparar la consulta: ' . $conn->error]));
+    die(json_encode(['error' => 'Error al preparar la consulta final: ' . $conn->error]));
 }
 
 $stmt->execute();
 $result = $stmt->get_result();
 
 if ($result && $result->num_rows > 0) {
-    $random_item = $result->fetch_assoc();
-    echo json_encode($random_item);
+    echo json_encode($result->fetch_assoc());
 } else {
-    http_response_code(404);
-    echo json_encode(["error" => "No se encontraron subcategorías para el modo seleccionado."]);
+    http_response_code(500); // Should not happen if count > 0, but as a fallback
+    echo json_encode(["error" => "Error inesperado al obtener la subcategoría aleatoria."]);
 }
 
 $stmt->close();
