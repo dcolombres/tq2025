@@ -19,6 +19,7 @@ $sql = "
         c.nombre AS categoria, 
         n.nombre AS nivel,
         s.nombre AS subcategoria, 
+        s.permite_validacion_externa,
         COUNT(p.id) AS cantidad_palabras
     FROM 
         subcategorias s
@@ -29,7 +30,7 @@ $sql = "
     LEFT JOIN 
         palabras p ON s.id = p.subcategoria_id
     GROUP BY 
-        s.id, c.nombre, n.nombre, s.nombre
+        s.id, c.nombre, n.nombre, s.nombre, s.permite_validacion_externa
     ORDER BY 
         c.nombre, n.nombre, s.nombre;
 ";
