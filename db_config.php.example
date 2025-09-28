@@ -1,0 +1,25 @@
+<?php
+// =====================================================
+// PLANTILLA DE CONFIGURACIÓN DE LA BASE DE DATOS
+// =====================================================
+//
+// Copia este archivo, renómbralo a "db_config.php" y rellena los datos
+// correspondientes a tu entorno (local o servidor).
+// El archivo "db_config.php" real NUNCA debe ser subido a Git.
+
+
+// --- EJEMPLO PARA ENTORNO LOCAL (XAMPP) ---
+$servername = "localhost";
+$username = "root";
+$password = "";
+$dbname = "tuttiquanti";
+
+/*
+// --- EJEMPLO PARA SERVIDOR (CPANEL) ---
+$servername = "localhost";
+$username = "usuario_de_cpanel";
+$dbname = "basededatos_de_cpanel";
+$password = "contraseña_generada_en_cpanel"; 
+*/
+
+?>

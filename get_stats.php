@@ -3,12 +3,7 @@ header('Content-Type: application/json');
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-// --- Configuración de la Base de Datos Local ---
-$servername = "localhost";
-$username = "root";
-$password = "";
-$dbname = "tuttiquanti";
-// -----------------------------------------
+require_once 'db_config.php';
 
 $conn = new mysqli($servername, $username, $password, $dbname);
 
