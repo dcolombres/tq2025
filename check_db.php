@@ -1,9 +1,9 @@
-      <?php
+<?php
       header('Content-Type: text/html; charset=utf-8');
       ini_set('display_errors', 1);
       error_reporting(E_ALL);
 
-      require_once 'db_config.php';
+      require_once __DIR__ . '/db_config.php';
       echo "<h1>Prueba de Conexión a la Base de Datos</h1>";
 
       // Intentar conectar
