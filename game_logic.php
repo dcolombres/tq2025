@@ -42,8 +42,8 @@ function getRandomCategory($conn) {
     }
 
     $sql = "SELECT s.id, s.nombre, s.permite_validacion_externa, n.nombre as nivel_nombre 
-            FROM Subcategorias s
-            JOIN Niveles n ON s.nivel_id = n.id
+            FROM subcategorias s
+            JOIN niveles n ON s.nivel_id = n.id
             WHERE s.categoria_id = ? 
             ORDER BY RAND() 
             LIMIT 1";
@@ -161,7 +161,7 @@ function validateWord($conn) {
         return;
     }
 
-    $sql = "SELECT palabra FROM Palabras WHERE subcategoria_id = ? AND palabra = ?";
+    $sql = "SELECT palabra FROM palabras WHERE subcategoria_id = ? AND palabra = ?";
     $stmt = $conn->prepare($sql);
     if (!$stmt) {
         die(json_encode(["error" => "Error preparing statement: " . $conn->error]));
@@ -185,7 +185,7 @@ function validateWord($conn) {
             // --- External Validation Flow ---
 
             // 1. Get Subcategory Name for context
-            $stmt_cat = $conn->prepare("SELECT nombre FROM Subcategorias WHERE id = ?");
+            $stmt_cat = $conn->prepare("SELECT nombre FROM subcategorias WHERE id = ?");
             $stmt_cat->bind_param("i", $subcategoryId);
             $stmt_cat->execute();
             $result_cat = $stmt_cat->get_result();
@@ -224,7 +224,7 @@ function validateWord($conn) {
         }
 
         // --- Typo Checking (Levenshtein) as a last resort ---
-        $sql_similar = "SELECT palabra FROM Palabras WHERE subcategoria_id = ? AND palabra LIKE ?";
+        $sql_similar = "SELECT palabra FROM palabras WHERE subcategoria_id = ? AND palabra LIKE ?";
         $stmt_similar = $conn->prepare($sql_similar);
         if (!$stmt_similar) {
             die(json_encode(["error" => "Error preparing similar word statement: " . $conn->error]));
