@@ -32,13 +32,18 @@ if ($categoria_id > 0) {
     $result = $stmt->get_result();
     
     $subcategorias = [];
-    if ($result->num_rows > 0) {
+    if ($result && $result->num_rows > 0) {
         while ($row = $result->fetch_assoc()) {
             $subcategorias[] = $row;
         }
+        echo json_encode($subcategorias);
+    } else {
+        if ($conn->error) {
+            die(json_encode(["error" => "DEBUG: Error de base de datos después de la consulta: " . $conn->error]));
+        } else {
+            die(json_encode(["debug_message" => "DEBUG: La consulta se ejecutó correctamente pero no devolvió filas para el categoria_id: " . $categoria_id]));
+        }
     }
-    
-    echo json_encode($subcategorias);
     
     $stmt->close();
 
