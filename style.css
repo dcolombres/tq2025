@@ -241,6 +241,37 @@ button:active { transform: translateY(0); box-shadow: none; }
     background-color: var(--primary-color);
 }
 
+/* Editor Mode Styles */
+.editor-button {
+    background-color: #17a2b8 !important;
+    color: white !important;
+    text-decoration: none;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 12px !important;
+    margin-left: 10px;
+}
+
+.btn-accept-word {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 5px 8px;
+    font-size: 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 5px;
+}
+
+.btn-accept-word:hover {
+    background-color: #218838;
+}
+
+.btn-accept-word:disabled {
+    background-color: #6c757d;
+    cursor: not-allowed;
+}
+
 .category-selector #instructions-button {
     margin-top: 20px;
 }
