@@ -19,7 +19,7 @@ $categoria_id = isset($_GET['categoria_id']) ? (int)$_GET['categoria_id'] : 0;
 
 if ($categoria_id > 0) {
     // Preparar la consulta para evitar inyección SQL
-    $sql = "SELECT id, nombre FROM Subcategorias WHERE categoria_id = ?";
+    $sql = "SELECT id, nombre FROM subcategorias WHERE categoria_id = ?";
     $stmt = $conn->prepare($sql);
     
     if (!$stmt) {
@@ -46,7 +46,7 @@ if ($categoria_id > 0) {
     // Si no se proporciona un categoria_id, podríamos devolver todas las subcategorías o un error.
     // Por ahora, devolvemos un array vacío o un mensaje de error.
     // Para el formulario, es mejor devolver todas las subcategorías si no hay filtro.
-    $sql = "SELECT id, nombre, categoria_id FROM Subcategorias ORDER BY nombre ASC";
+    $sql = "SELECT id, nombre, categoria_id FROM subcategorias ORDER BY nombre ASC";
     $result = $conn->query($sql);
 
     $subcategorias = [];

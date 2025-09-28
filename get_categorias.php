@@ -12,7 +12,7 @@ if ($conn->connect_error) {
     die(json_encode(["error" => "Conexión fallida: " . $conn->connect_error]));
 }
 
-$sql = "SELECT id, nombre FROM Categorias ORDER BY nombre ASC";
+$sql = "SELECT id, nombre FROM categorias ORDER BY nombre ASC";
 $result = $conn->query($sql);
 
 $categorias = [];

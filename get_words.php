@@ -20,7 +20,7 @@ if ($conn->connect_error) {
 }
 $conn->set_charset("utf8");
 
-$sql = "SELECT id, palabra FROM Palabras WHERE subcategoria_id = ? ORDER BY palabra ASC";
+$sql = "SELECT id, palabra FROM palabras WHERE subcategoria_id = ? ORDER BY palabra ASC";
 $stmt = $conn->prepare($sql);
 if (!$stmt) {
     http_response_code(500);

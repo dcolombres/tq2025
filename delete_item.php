@@ -29,14 +29,14 @@ try {
     switch ($type) {
         case 'subcategory':
             // Eliminar palabras asociadas
-            $stmt = $conn->prepare("DELETE FROM Palabras WHERE subcategoria_id = ?");
+            $stmt = $conn->prepare("DELETE FROM palabras WHERE subcategoria_id = ?");
             if (!$stmt) throw new Exception('Error al preparar la eliminación de palabras.');
             $stmt->bind_param("i", $id);
             $stmt->execute();
             $stmt->close();
 
             // Eliminar la subcategoría
-            $stmt = $conn->prepare("DELETE FROM Subcategorias WHERE id = ?");
+            $stmt = $conn->prepare("DELETE FROM subcategorias WHERE id = ?");
             if (!$stmt) throw new Exception('Error al preparar la eliminación de la subcategoría.');
             $stmt->bind_param("i", $id);
             $stmt->execute();
@@ -47,10 +47,10 @@ try {
         case 'categoria':
         case 'nivel':
             $col_name = ($type === 'categoria') ? 'categoria_id' : 'nivel_id';
-            $table_name = ($type === 'categoria') ? 'Categorias' : 'Niveles';
+            $table_name = ($type === 'categoria') ? 'categorias' : 'niveles';
 
             // 1. Encontrar todas las subcategorías afectadas
-            $stmt = $conn->prepare("SELECT id FROM Subcategorias WHERE {$col_name} = ?");
+            $stmt = $conn->prepare("SELECT id FROM subcategorias WHERE {$col_name} = ?");
             if (!$stmt) throw new Exception("Error al preparar la búsqueda de subcategorías afectadas.");
             $stmt->bind_param("i", $id);
             $stmt->execute();
@@ -65,7 +65,7 @@ try {
             if (!empty($subcat_ids)) {
                 $placeholders = implode(',', array_fill(0, count($subcat_ids), '?'));
                 $types = str_repeat('i', count($subcat_ids));
-                $stmt_palabras = $conn->prepare("DELETE FROM Palabras WHERE subcategoria_id IN ({$placeholders})");
+                $stmt_palabras = $conn->prepare("DELETE FROM palabras WHERE subcategoria_id IN ({$placeholders})");
                 if (!$stmt_palabras) throw new Exception("Error al preparar la eliminación de palabras en cascada.");
                 $stmt_palabras->bind_param($types, ...$subcat_ids);
                 $stmt_palabras->execute();
@@ -73,7 +73,7 @@ try {
             }
 
             // 3. Eliminar las subcategorías afectadas
-            $stmt_sub = $conn->prepare("DELETE FROM Subcategorias WHERE {$col_name} = ?");
+            $stmt_sub = $conn->prepare("DELETE FROM subcategorias WHERE {$col_name} = ?");
             if (!$stmt_sub) throw new Exception("Error al preparar la eliminación de subcategorías en cascada.");
             $stmt_sub->bind_param("i", $id);
             $stmt_sub->execute();

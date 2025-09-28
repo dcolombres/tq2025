@@ -33,13 +33,13 @@ if ($conn->connect_error) {
 $table_name = '';
 switch ($type) {
     case 'categoria':
-        $table_name = 'Categorias';
+        $table_name = 'categorias';
         break;
     case 'nivel':
-        $table_name = 'Niveles';
+        $table_name = 'niveles';
         break;
     case 'subcategory':
-        $table_name = 'Subcategorias';
+        $table_name = 'subcategorias';
         break;
     default:
         send_error('Tipo de elemento no soportado.');

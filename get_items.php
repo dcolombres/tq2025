@@ -26,10 +26,10 @@ if ($conn->connect_error) {
 $sql = '';
 switch ($type) {
     case 'categoria':
-        $sql = "SELECT id, nombre FROM Categorias ORDER BY nombre ASC";
+        $sql = "SELECT id, nombre FROM categorias ORDER BY nombre ASC";
         break;
     case 'nivel':
-        $sql = "SELECT id, nombre FROM Niveles ORDER BY nombre ASC";
+        $sql = "SELECT id, nombre FROM niveles ORDER BY nombre ASC";
         break;
     default:
         send_error('Tipo de item no soportado.');
