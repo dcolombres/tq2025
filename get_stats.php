@@ -9,7 +9,7 @@ $conn = new mysqli($servername, $username, $password, $dbname);
 
 if ($conn->connect_error) {
     http_response_code(500);
-    die(json_encode(["error" => "Conexión fallida: " . $conn->connect_error]));
+    die(json_encode(["error" => "Conexión fallida para el usuario '" . $username . "' en la BD '" . $dbname . "': " . $conn->connect_error]));
 }
 
 // Consulta para obtener las estadísticas
