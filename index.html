@@ -1,71 +1,83 @@
-<html><head>
+<!DOCTYPE html>
+<html lang="es">
+<head>
     <meta charset="utf-8">
-  <!-- url donde estara style.css y script.js <base href="https://moroarte.com/tuttiquanti/">-->
-  <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&amp;display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
-  <title>TUTTI QUANTI - The Alphabet Challenge</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+    <title>TUTTI QUANTI - The Alphabet Challenge</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  
+
 <div class="game-container">
-  <div style="display: flex; align-items: flex-start; gap: 20px; margin-bottom: 20px;">
-    <img src="https://moroarte.com/wp-content/uploads/2023/09/logoTUTTIQUANTI-154x300.png" alt="Tutti Quanti logo - Purple text logo with playful design" style="height: auto; width: 90px;">
-    <div class="instructions">
-      <h3>INSTRUCCIONES DEL JUEGO TUTTIQUANTI</h3>
-      <p>
-        1. Cliqueá en &quot;Random&quot; para comenzar. Se te asignar&#xe1; una categor&#xed;a al azar y se iniciar&#xe1; la cuenta regresiva.<br>
-        2. Intentá completar todas las letras que puedas. Tené en cuenta lo siguiente:<br>
-        &emsp;&#x2022; Respuesta vac&#xed;a: No suma puntos.<br>
-        &emsp;&#x2022; Respuesta incorrecta: Resta 3 puntos.<br>
-        &emsp;&#x2022; Respuesta v&#xe1;lida: Suma 10 puntos.<br>
-        3. Una vez que hayas terminado, presioná el bot&#xf3;n de TUTTI QUANTI. Cuanto m&#xe1;s r&#xe1;pido lo hagas, m&#xe1;s puntos podr&#xe1;s ganar.<br>
-        4.  Al final del juego, tendr&#xe1;s la oportunidad de revisar las comprobaciones y validaciones de tus respuestas.
-      </p>
+    <!-- Selección de Categoría Principal -->
+    <div id="category-selection-container" class="category-selector">
+        <div class="logo-container"><img src="https://moroarte.com/wp-content/uploads/2023/09/logoTUTTIQUANTI-154x300.png" alt="Tutti Quanti Logo" class="logo"></div>
+        <h2>Elige un modo de juego</h2>
+        <div id="category-buttons" class="category-buttons">
+            <!-- Los botones de categoría se cargarán aquí dinámicamente -->
+        </div>
+        <button id="instructions-button"><i class="fas fa-info-circle"></i> Instrucciones</button>
     </div>
-  </div>
 
-  <div class="game-stats">
-    <div class="timer">02:40</div>
-    <div class="controls">
-      <button id="spinButton">RANDOM</button>
-      <div class="category-display">
-        CATEGORÍA
-      </div>
+    <!-- Encabezado del Juego -->
+    <div class="game-header">
+        <div class="category-display">CATEGORÍA</div>
+        <div class="timer">02:40</div>
+        <div class="score">Puntos: 0</div>
+        <div class="header-controls">
+            <button id="change-mode-button"><i class="fas fa-exchange-alt"></i> Cambiar Modo</button>
+            <button id="instructions-button"><i class="fas fa-info-circle"></i> Instrucciones</button>
+        </div>
     </div>
-    <div class="score">Palabras correctas: 0</div>
-  </div>
 
-  <div class="alphabet-grid">
-    <!-- Las letras y campos de entrada se generarán dinámicamente -->
-  </div>
+    <!-- Grilla del Alfabeto -->
+    <div class="alphabet-grid"></div>
 
-  <button id="finishButton" class="finish-button">TUTTI QUANTI</button>
+    <!-- Botón de Finalizar -->
+    <button id="finishButton" class="finish-button"><i class="fas fa-check-circle"></i> TUTTI QUANTI</button>
 
-  <div class="results-container" id="resultsContainer">
-    <h2 class="results-title">Resultados</h2>
-    <div class="word-list" id="wordList">
+    <!-- Contenedor de Resultados (Oculto) -->
+    <div class="results-container" id="resultsContainer">
+        <h2 class="results-title">Resultados</h2>
+        <div class="word-list" id="wordList"></div>
     </div>
-  </div>
 </div>
 
 <div class="footer">
-  <div class="copyright">
-    Tutti Quanti (2022) Derechos Reservados - Moro Colombres -
-    <a href="https://www.moroarte.com" style="color: var(--primary-color);">www.moroarte.com</a>
-  </div>
-  
-  
-  </div>
+    <div class="copyright">
+        Tutti Quanti (2022) Derechos Reservados - Moro Colombres - <a href="https://www.moroarte.com">www.moroarte.com</a>
+    </div>
 </div>
 
+<!-- Modal de Resultados Finales -->
 <div id="resultsModal" class="modal">
   <div class="modal-content">
-    <span class="close-modal">×</span>
+    <span class="close-modal">&times;</span>
     <div id="modalResults"></div>
   </div>
 </div>
 
+<!-- Modal de Instrucciones -->
+<div id="instructions-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-modal">&times;</span>
+        <h3>INSTRUCCIONES DEL JUEGO</h3>
+        <p>
+            1. Cliqueá en <b>RANDOM</b> para comenzar. Se te asignará una categoría al azar y se iniciará la cuenta regresiva.<br><br>
+            2. Intentá completar todas las letras que puedas. Tené en cuenta el sistema de puntos:<br>
+            &emsp;• Respuesta correcta: <b>+10 puntos</b><br>
+            &emsp;• Error de tipeo: <b>+7 puntos</b><br>
+            &emsp;• Validada por sistema: <b>+5 puntos</b><br>
+            &emsp;• Respuesta incorrecta: <b>-3 puntos</b><br>
+            &emsp;• Respuesta vacía: <b>0 puntos</b><br><br>
+            3. Cuando termines, presioná <b>TUTTI QUANTI</b>. ¡Cuanto más rápido lo hagas, más puntos de bonus por tiempo ganarás!<br><br>
+            4. Al final del juego, podrás revisar la validación de cada una de tus respuestas.
+        </p>
+    </div>
+</div>
+
 <script src="script.js"></script> 
-</body></html>
+</body>
+</html>

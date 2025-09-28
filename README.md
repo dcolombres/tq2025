@@ -113,7 +113,8 @@ Sigue estos pasos para configurar el proyecto en un entorno de desarrollo local.
 - [ ] **Modo Party (App Mobile)**: Desarrollar una aplicación móvil que consuma la misma API de `game_logic.php` para permitir un modo de juego multijugador.
 - [ ] **Sistema de Usuarios**: Añadir la capacidad de registrarse y guardar puntuaciones históricas.
 - [ ] **Más Variedad de Juego**: Implementar niveles de dificultad que afecten el tiempo o la complejidad de las categorías.
+- [ ] **Poblar y refinar la DB**: Incorporar palabras que validen las respuestas desde gestion y TQinsert
 
 ## Autor
 
-- **Moro Colombres** - [www.moroarte.com](https://www.moroarte.com)
+- **Moro Colombres** - 2022 [www.moroarte.com](https://www.moroarte.com)
