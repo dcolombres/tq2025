@@ -296,6 +296,23 @@
             }, 2000); // Run roulette for 2 seconds
         }
 
+        // --- History Management ---
+        const RECENT_HISTORY_KEY = 'partyModeHistory';
+        const MAX_HISTORY_SIZE = 10;
+
+        function getRecentHistory() {
+            const history = sessionStorage.getItem(RECENT_HISTORY_KEY);
+            return history ? JSON.parse(history) : [];
+        }
+
+        function addToRecentHistory(id) {
+            let history = getRecentHistory();
+            history.unshift(id); // Add new id to the front
+            // Remove duplicates and slice to max size
+            history = [...new Set(history)].slice(0, MAX_HISTORY_SIZE);
+            sessionStorage.setItem(RECENT_HISTORY_KEY, JSON.stringify(history));
+        }
+
         async function getRandomCategory() {
             randomBtn.disabled = true;
             levelDisplay.innerHTML = '';
@@ -304,7 +321,10 @@
             runRouletteEffect(async () => {
                 try {
                     const gameMode = modeToggle.checked ? 'all' : 'party';
-                    const response = await fetch(`party_logic.php?mode=${gameMode}`);
+                    const recentIds = getRecentHistory();
+                    const excludeQuery = recentIds.length > 0 ? `&exclude=${recentIds.join(',')}` : '';
+
+                    const response = await fetch(`party_logic.php?mode=${gameMode}${excludeQuery}`);
                     
                     if (!response.ok) {
                         const errorData = await response.json();
@@ -312,14 +332,21 @@
                     }
                     const data = await response.json();
 
+                    // Add to history if a valid category was returned
+                    if (data && data.id) {
+                        addToRecentHistory(data.id);
+                    }
+
                     // Update UI with real data
                     const levelClass = getLevelClass(data.nivel || '');
                     levelDisplay.innerHTML = `<span class="level-label ${levelClass}">${data.nivel || 'NIVEL'}</span>`;
                     subcategoryDisplay.textContent = data.subcategoria || 'Error';
                     card.classList.add('flip');
                     
-                    // Start the game timer
-                    startTimer();
+                    // Start the game timer only on the first press
+                    if (!timerInterval) {
+                        startTimer();
+                    }
 
                 } catch (error) {
                     subcategoryDisplay.textContent = 'Error al cargar';
@@ -327,7 +354,7 @@
                     alert('No se pudo obtener la categoría: ' + error.message);
                 } finally {
                     randomBtn.disabled = false;
-                    randomBtn.innerHTML = '🎲 Obtener Subcategoría';
+                    randomBtn.innerHTML = '🎲 Próximo Desafío';
                 }
             });
         }
