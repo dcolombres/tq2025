@@ -7,7 +7,19 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/en/1.0.
 ## [Unreleased]
 
 ### Added
+- Sistema de juego por rondas (6 rondas por partida completa) con contador visible.
+- Historial de puntuaciones entre rondas con total general.
 - Se añade un botón "Nueva Ronda" al finalizar el juego para permitir reiniciar sin recargar la página.
+
+### Changed
+- **Sistema de Puntuación:** Las respuestas correctas ahora otorgan 15 puntos y las vacías restan 3 puntos.
+- **Botón "TUTTI QUANTI":** Ahora requiere que pase 1 minuto o se completen 15 respuestas para poder finalizar la ronda.
+- **Interfaz:** Se reemplazaron todas las alertas del navegador por modales personalizados.
+
+### Fixed
+- **Modo Party:** Se implementó una lógica para evitar la repetición de las últimas 10 subcategorías.
+- **Estabilidad General:** Se corrigieron numerosos bugs críticos que impedían la carga de categorías, el inicio de las rondas y el cálculo de la puntuación final.
+- **Compatibilidad:** Se refactorizaron todos los scripts del backend para eliminar el uso de `get_result()` y asegurar la compatibilidad con diferentes entornos de PHP/MySQL.
 - **Modo Party:**
   - Se crea una nueva interfaz (`party.php`) para un modo de juego verbal adaptado a móviles.
   - Incluye un generador de categorías aleatorias con temporizador.

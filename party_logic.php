@@ -1,7 +1,7 @@
 <?php
 header('Content-Type: application/json');
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
+error_reporting(0);
+ini_set('display_errors', 0);
 
 require 'db_config.php';
 
@@ -13,65 +13,85 @@ if ($conn->connect_error) {
 }
 $conn->set_charset("utf8");
 
+// --- Get Parameters ---
 $mode = $_GET['mode'] ?? 'party';
+$exclude_ids_str = $_GET['exclude'] ?? '';
 
-if ($mode === 'party') {
-    // --- PARTY MODE LOGIC ---
-
-    // 1. Find the ID of the 'Party' main category
-    $category_name = 'Party'; // Correct case
-    $stmt_cat = $conn->prepare("SELECT id FROM categorias WHERE nombre = ?");
-    if (!$stmt_cat) die(json_encode(['error' => 'Prepare failed for category lookup']));
-    $stmt_cat->bind_param("s", $category_name);
-    $stmt_cat->execute();
-    $result_cat = $stmt_cat->get_result();
-    if ($result_cat->num_rows === 0) {
-        http_response_code(404);
-        die(json_encode(["error" => "La categoría principal 'Party' no fue encontrada."]));
-    }
-    $party_category_id = $result_cat->fetch_assoc()['id'];
-    $stmt_cat->close();
-
-    // 2. Count rows in that category
-    $count_stmt = $conn->prepare("SELECT COUNT(*) as total FROM subcategorias WHERE categoria_id = ?");
-    if (!$count_stmt) die(json_encode(['error' => 'Prepare failed for party count']));
-    $count_stmt->bind_param("i", $party_category_id);
-    $count_stmt->execute();
-    $total_rows = $count_stmt->get_result()->fetch_assoc()['total'];
-    $count_stmt->close();
-
-    if ($total_rows == 0) die(json_encode(["error" => "No hay subcategorías en el modo Party."]));
-
-    // 3. Fetch a random row from that category
-    $random_offset = rand(0, $total_rows - 1);
-    $stmt = $conn->prepare("SELECT s.nombre AS subcategoria, n.nombre as nivel FROM subcategorias s JOIN niveles n ON s.nivel_id = n.id WHERE s.categoria_id = ? LIMIT 1 OFFSET ?");
-    if (!$stmt) die(json_encode(['error' => 'Prepare failed for party select']));
-    $stmt->bind_param("ii", $party_category_id, $random_offset);
-
-} else {
-    // --- TUTTI MODE LOGIC ---
-
-    // 1. Count all rows
-    $count_result = $conn->query("SELECT COUNT(*) as total FROM subcategorias");
-    $total_rows = $count_result->fetch_assoc()['total'];
-    if ($total_rows == 0) die(json_encode(['error' => 'No hay subcategorías en la base de datos.']));
-
-    // 2. Fetch a random row from all categories
-    $random_offset = rand(0, $total_rows - 1);
-    $stmt = $conn->prepare("SELECT s.nombre AS subcategoria, n.nombre as nivel FROM subcategorias s JOIN niveles n ON s.nivel_id = n.id LIMIT 1 OFFSET ?");
-    if (!$stmt) die(json_encode(['error' => 'Prepare failed for tutti select']));
-    $stmt->bind_param("i", $random_offset);
+$exclude_ids = [];
+if (!empty($exclude_ids_str)) {
+    $exclude_ids = array_map('intval', explode(',', $exclude_ids_str));
 }
 
-// --- Execute and Return Result (common for both modes) ---
-$stmt->execute();
-$result = $stmt->get_result();
+// --- Build Query based on Mode ---
+$sql = "SELECT s.id, s.nombre AS subcategoria, n.nombre as nivel FROM subcategorias s JOIN niveles n ON s.nivel_id = n.id";
+$params = [];
+$types = '';
 
-if ($result && $result->num_rows > 0) {
-    echo json_encode($result->fetch_assoc());
-} else {
+$where_clauses = [];
+
+// Mode-specific WHERE clause
+if ($mode === 'party') {
+    $category_name = 'Party';
+    $stmt_cat = $conn->prepare("SELECT id FROM categorias WHERE nombre = ?");
+    $stmt_cat->bind_param("s", $category_name);
+    $stmt_cat->execute();
+    $stmt_cat->store_result();
+    if ($stmt_cat->num_rows > 0) {
+        $stmt_cat->bind_result($party_category_id);
+        $stmt_cat->fetch();
+        $where_clauses[] = "s.categoria_id = ?";
+        $params[] = $party_category_id;
+        $types .= 'i';
+    }
+    $stmt_cat->close();
+}
+
+// Exclusion WHERE clause
+if (!empty($exclude_ids)) {
+    $placeholders = implode(',', array_fill(0, count($exclude_ids), '?'));
+    $where_clauses[] = "s.id NOT IN ($placeholders)";
+    foreach ($exclude_ids as $ex_id) {
+        $params[] = $ex_id;
+        $types .= 'i';
+    }
+}
+
+if (!empty($where_clauses)) {
+    $sql .= " WHERE " . implode(' AND ', $where_clauses);
+}
+
+$sql .= " ORDER BY RAND() LIMIT 1";
+
+// --- Execute Query ---
+$stmt = $conn->prepare($sql);
+
+if (!$stmt) {
     http_response_code(500);
-    echo json_encode(["error" => "Error inesperado al obtener la subcategoría aleatoria."]);
+    die(json_encode(['error' => 'Prepare failed: ' . $conn->error, 'sql' => $sql]));
+}
+
+if (!empty($params)) {
+    $stmt->bind_param($types, ...$params);
+}
+
+$stmt->execute();
+$stmt->store_result();
+
+if ($stmt->num_rows > 0) {
+    $stmt->bind_result($id, $subcategoria, $nivel);
+    $stmt->fetch();
+    echo json_encode(['id' => $id, 'subcategoria' => $subcategoria, 'nivel' => $nivel]);
+} else {
+    // If no rows are found (maybe all were excluded), try again without exclusion
+    $fallback_sql = str_contains($sql, "NOT IN") ? substr($sql, 0, strpos($sql, "AND s.id NOT IN")) . " ORDER BY RAND() LIMIT 1" : $sql;
+    $fallback_stmt = $conn->prepare($fallback_sql);
+    if($mode === 'party') $fallback_stmt->bind_param("i", $party_category_id);
+    $fallback_stmt->execute();
+    $fallback_stmt->store_result();
+    $fallback_stmt->bind_result($id, $subcategoria, $nivel);
+    $fallback_stmt->fetch();
+    echo json_encode(['id' => $id, 'subcategoria' => $subcategoria, 'nivel' => $nivel]);
+    $fallback_stmt->close();
 }
 
 $stmt->close();

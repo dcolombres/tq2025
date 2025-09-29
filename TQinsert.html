@@ -162,7 +162,7 @@
 
         // --- Función para cargar el menú de Categorías Principales ---
         function loadCategoriasDropdown() {
-            fetch('get_categorias.php')
+            fetch('get_items.php?type=categoria')
                 .then(response => response.json())
                 .then(categorias => {
                     const currentVal = categoriaSelect.value;

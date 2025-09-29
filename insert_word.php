@@ -51,10 +51,10 @@ try {
     $stmt_cat = $conn->prepare("SELECT categoria_id FROM subcategorias WHERE id = ?");
     $stmt_cat->bind_param("i", $subcategoria_id);
     $stmt_cat->execute();
-    $result_cat = $stmt_cat->get_result();
-    if ($row_cat = $result_cat->fetch_assoc()) {
-        $categoria_id = $row_cat['categoria_id'];
-    } else {
+    $stmt_cat->store_result();
+    $stmt_cat->bind_result($categoria_id);
+    
+    if (!$stmt_cat->fetch()) {
         throw new Exception('La subcategoría seleccionada no es válida.');
     }
     $stmt_cat->close();
