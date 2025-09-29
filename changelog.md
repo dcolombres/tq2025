@@ -10,16 +10,6 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/en/1.0.
 - Sistema de juego por rondas (6 rondas por partida completa) con contador visible.
 - Historial de puntuaciones entre rondas con total general.
 - Se añade un botón "Nueva Ronda" al finalizar el juego para permitir reiniciar sin recargar la página.
-
-### Changed
-- **Sistema de Puntuación:** Las respuestas correctas ahora otorgan 15 puntos y las vacías restan 3 puntos.
-- **Botón "TUTTI QUANTI":** Ahora requiere que pase 1 minuto o se completen 15 respuestas para poder finalizar la ronda.
-- **Interfaz:** Se reemplazaron todas las alertas del navegador por modales personalizados.
-
-### Fixed
-- **Modo Party:** Se implementó una lógica para evitar la repetición de las últimas 10 subcategorías.
-- **Estabilidad General:** Se corrigieron numerosos bugs críticos que impedían la carga de categorías, el inicio de las rondas y el cálculo de la puntuación final.
-- **Compatibilidad:** Se refactorizaron todos los scripts del backend para eliminar el uso de `get_result()` y asegurar la compatibilidad con diferentes entornos de PHP/MySQL.
 - **Modo Party:**
   - Se crea una nueva interfaz (`party.php`) para un modo de juego verbal adaptado a móviles.
   - Incluye un generador de categorías aleatorias con temporizador.
@@ -35,7 +25,18 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/en/1.0.
   - Se integra la API de Wikipedia para verificar existencia y relevancia de palabras.
   - Se mejora el flujo de validación a: Base de Datos -> Wikipedia -> RAE -> Levenshtein (error de tipeo).
 
+### Changed
+- **Sistema de Puntuación:** Las respuestas correctas ahora otorgan 15 puntos y las vacías restan 3 puntos.
+- **Botón "TUTTI QUANTI":** Ahora requiere que pase 1 minuto o se completen 15 respuestas para poder finalizar la ronda.
+- **Interfaz:** Se reemplazaron todas las alertas del navegador por modales personalizados.
+- **Refactorización y Documentación:**
+  - Se han revisado, estandarizado y documentado todos los archivos `.php` del backend para mejorar la legibilidad y el mantenimiento futuro.
+
 ### Fixed
+- **Páginas de Administración:** Corregida la incompatibilidad con la base de datos en los scripts (`get_stats.php`, `create_structure.php`) que impedían el funcionamiento de `TQinsert.html`.
+- **Modo Party:** Se implementó una lógica para evitar la repetición de las últimas 10 subcategorías.
+- **Estabilidad General:** Se corrigieron numerosos bugs críticos que impedían la carga de categorías, el inicio de las rondas y el cálculo de la puntuación final.
+- **Compatibilidad:** Se refactorizaron todos los scripts del backend para eliminar el uso de `get_result()` y asegurar la compatibilidad con diferentes entornos de PHP/MySQL.
 - **Validación Externa (RAE):**
   - Se reemplazó la API no oficial de la RAE (que dejó de funcionar) por un método de web scraping directo sobre `dle.rae.es` para validar palabras.
 - **Validación Externa (Wikipedia):**
@@ -46,7 +47,3 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/en/1.0.
 - **Modo Party - Aleatoriedad:**
   - Se reemplazó `ORDER BY RAND()` por un método de `COUNT` y `OFFSET` para evitar problemas de caché y asegurar una aleatoriedad real en cada petición.
   - Se corrigió un bug que causaba que el "Modo Party" seleccionara categorías del modo "Tutti".
-
-### Changed
-- **Refactorización y Documentación:**
-  - Se han revisado, estandarizado y documentado todos los archivos `.php` del backend para mejorar la legibilidad y el mantenimiento futuro.
