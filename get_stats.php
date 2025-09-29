@@ -1,18 +1,31 @@
 <?php
+/**
+ * get_stats.php
+ * 
+ * Este script se conecta a la base de datos para obtener una lista completa de todas las
+ * subcategorías y sus estadísticas asociadas, como la categoría principal, el nivel
+ * y la cantidad de palabras que contienen.
+ * 
+ * Devuelve los datos en formato JSON.
+ */
+
 header('Content-Type: application/json');
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
+// --- Conexión a la Base de Datos ---
 require_once __DIR__ . '/db_config.php';
-
 $conn = new mysqli($servername, $username, $password, $dbname);
 
+// Verificar la conexión
 if ($conn->connect_error) {
     http_response_code(500);
-    die(json_encode(["error" => "Conexión fallida para el usuario '" . $username . "' en la BD '" . $dbname . "': " . $conn->connect_error]));
+    die(json_encode(["error" => "Conexión fallida a la base de datos."]));
 }
 
-// Consulta para obtener las estadísticas
+// --- Consulta Principal ---
+// Se obtiene una lista de todas las subcategorías con su información de categoría, 
+// nivel y el conteo total de palabras asociadas a cada una.
 $sql = "
     SELECT 
         s.id AS subcategoria_id,
@@ -37,13 +50,15 @@ $sql = "
 
 $result = $conn->query($sql);
 
+// --- Procesamiento de Resultados ---
 $stats = [];
-if ($result->num_rows > 0) {
+if ($result && $result->num_rows > 0) {
     while ($row = $result->fetch_assoc()) {
         $stats[] = $row;
     }
 }
 
+// --- Respuesta JSON ---
 echo json_encode($stats);
 
 $conn->close();
