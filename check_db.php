@@ -1,28 +1,48 @@
 <?php
-/**
- * check_db.php
- * 
- * Este es un script de diagnóstico simple para verificar si la conexión a la base de datos
- * se puede establecer correctamente utilizando las credenciales de `db_config.php`.
- * Devuelve un mensaje de éxito o error en formato HTML.
- */
+header('Content-Type: application/json');
 
-header('Content-Type: text/html; charset=utf-8');
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
+$response = [];
+
+// 1. Verificar si el archivo de configuración existe
+if (!file_exists(__DIR__ . '/db_config.php')) {
+    http_response_code(500);
+    $response['status'] = 'error';
+    $response['message'] = 'CRÍTICO: El archivo db_config.php no existe.';
+    echo json_encode($response);
+    exit;
+}
 
 require_once __DIR__ . '/db_config.php';
-echo "<h1>Prueba de Conexión a la Base de Datos</h1>";
 
-// Intentar conectar
+// 2. Verificar si las variables están definidas en el archivo
+if (!isset($servername, $username, $password, $dbname)) {
+    http_response_code(500);
+    $response['status'] = 'error';
+    $response['message'] = 'ERROR: Una o más variables (servername, username, password, dbname) no están definidas en db_config.php.';
+    echo json_encode($response);
+    exit;
+}
+
+// 3. Intentar la conexión a la base de datos
+// Desactivar los errores de mysqli para manejarlos manualmente
+mysqli_report(MYSQLI_REPORT_OFF);
 $conn = new mysqli($servername, $username, $password, $dbname);
 
-// Comprobar conexión y mostrar resultado
 if ($conn->connect_error) {
-    echo "<p style='color: red; font-weight: bold;'>Error al conectar a la base de datos: </p>";
-    echo "<p>" . $conn->connect_error . "</p>";
+    http_response_code(500);
+    $response['status'] = 'error';
+    $response['message'] = 'FALLO DE CONEXIÓN: No se pudo conectar a la base de datos.';
+    $response['details'] = [
+        'error_message' => $conn->connect_error,
+        'server' => $servername,
+        'user' => $username,
+        'database' => $dbname
+    ];
 } else {
-    echo "<p style='color: green; font-weight: bold;'>¡Conexión a la base de datos '" . $dbname . "' fue exitosa!</p>";
+    $response['status'] = 'success';
+    $response['message'] = 'ÉXITO: La conexión a la base de datos se ha establecido correctamente.';
     $conn->close();
 }
+
+echo json_encode($response);
 ?>

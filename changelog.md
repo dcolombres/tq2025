@@ -7,6 +7,7 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/en/1.0.
 ## [Unreleased]
 
 ### Added
+- Se añade un botón "Nueva Ronda" al finalizar el juego para permitir reiniciar sin recargar la página.
 - **Modo Party:**
   - Se crea una nueva interfaz (`party.php`) para un modo de juego verbal adaptado a móviles.
   - Incluye un generador de categorías aleatorias con temporizador.
