@@ -87,8 +87,8 @@ function validateWithWikipedia($word, $gameCategory) {
     ]);
 
     $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, $apiUrl . "?" . $searchParams);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36');
     $searchResult = curl_exec($ch);
     curl_close($ch);
 
@@ -112,6 +112,7 @@ function validateWithWikipedia($word, $gameCategory) {
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $apiUrl . "?" . $categoryParams);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36');
     $categoryResult = curl_exec($ch);
     curl_close($ch);
 
@@ -201,21 +202,31 @@ function validateWord($conn) {
             }
 
             // 3. RAE Validation
-            $rae_api_url = "http://api.rae-api.com./word/" . urlencode(strtolower($word));
-            $ch_rae = curl_init($rae_api_url);
+            $rae_url = "https://dle.rae.es/?w=" . urlencode(strtolower($word));
+            $ch_rae = curl_init($rae_url);
             curl_setopt($ch_rae, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($ch_rae, CURLOPT_FOLLOWLOCATION, true);
-            curl_exec($ch_rae);
+            curl_setopt($ch_rae, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36');
+            $response = curl_exec($ch_rae);
             $http_code = curl_getinfo($ch_rae, CURLINFO_HTTP_CODE);
             curl_close($ch_rae);
 
             if ($http_code == 200) {
-                echo json_encode([
-                    'status' => 'VALIDADO_EXTERNAMENTE',
-                    'explanation' => 'Palabra encontrada en la RAE (relevancia no verificada).',
-                    'source' => 'RAE'
-                ]);
-                return;
+                $dom = new DOMDocument();
+                @$dom->loadHTML($response);
+                $xpath = new DOMXPath($dom);
+                $not_found_node = $xpath->query('//h2[@class="c-page-header__title"]');
+
+                if ($not_found_node->length > 0 && stripos($not_found_node[0]->nodeValue, "no está en el Diccionario") !== false) {
+                    // Word not found
+                } else {
+                    echo json_encode([
+                        'status' => 'VALIDADO_EXTERNAMENTE',
+                        'explanation' => 'Palabra encontrada en la RAE (relevancia no verificada).',
+                        'source' => 'RAE'
+                    ]);
+                    return;
+                }
             }
         }
 
