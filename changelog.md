@@ -23,6 +23,10 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/en/1.0.
   - Se mejora el flujo de validación a: Base de Datos -> Wikipedia -> RAE -> Levenshtein (error de tipeo).
 
 ### Fixed
+- **Validación Externa (RAE):**
+  - Se reemplazó la API no oficial de la RAE (que dejó de funcionar) por un método de web scraping directo sobre `dle.rae.es` para validar palabras.
+- **Validación Externa (Wikipedia):**
+  - Se añadió un `User-Agent` a las peticiones cURL para evitar errores de conexión (403 Forbidden).
 - **Compatibilidad con Servidor de Producción (Linux):**
   - Se estandarizaron todos los nombres de tablas a minúsculas en las consultas SQL para asegurar la compatibilidad.
   - Se eliminaron las credenciales de base de datos locales de los scripts y se centralizó el uso de `db_config.php` en todo el proyecto.
