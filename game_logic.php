@@ -100,9 +100,6 @@ function validateWithWikipedia($word, $gameCategory) {
     }
     $pageTitle = $searchData['query']['search'][0]['title'];
 
-    // DEBUGGING: Print page title
-    echo "<!-- Wikipedia Debug: Page Title Found: " . htmlspecialchars($pageTitle) . " -->\n";
-
     // --- Step 2: Get the categories for that article ---
     $categoryParams = http_build_query([
         "action" => "query",
@@ -136,15 +133,6 @@ function validateWithWikipedia($word, $gameCategory) {
         $all_categories[] = $category['title'];
     }
     echo "<!-- Wikipedia Debug: Categories Found: " . htmlspecialchars(implode(", ", $all_categories)) . " -->\n";
-
-    if ($word === 'Argentina') {
-        $debug_info = [
-            'pageTitle' => $pageTitle,
-            'categories' => $pages[$pageId]['categories'] ?? 'No categories found'
-        ];
-        echo json_encode($debug_info);
-        die();
-    }
 
     // --- Step 3: Check if any Wikipedia category matches the game category ---
     foreach ($pages[$pageId]['categories'] as $category) {
