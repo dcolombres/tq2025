@@ -96,6 +96,15 @@ body {
   text-align: right;
 }
 
+.round-counter {
+  font-family: 'Lato', sans-serif;
+  font-weight: 700;
+  color: var(--primary-color);
+  font-size: 16px;
+  white-space: nowrap;
+  text-align: center;
+}
+
 /* Buttons */
 button {
   font-family: 'Lato', sans-serif;
@@ -313,3 +322,97 @@ button:active { transform: translateY(0); box-shadow: none; }
 }
 
 #instructions-button:hover { background-color: #5a6268; }
+
+#new-round-button {
+    background-color: var(--magenta);
+}
+
+#new-round-button:hover {
+    background-color: #c2185b;
+}
+
+.category-display {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-grow: 1; /* Allow it to take space */
+    flex-wrap: wrap; /* Allow wrapping */
+    justify-content: center; /* Center the top line */
+}
+
+.label-mode, .label-level {
+    padding: 5px 12px;
+    border-radius: 8px;
+    color: white;
+    font-weight: 700;
+    font-size: 14px;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.label-mode {
+    background-color: var(--primary-color); /* Dark purple for main mode */
+}
+
+.label-level {
+    background-color: var(--magenta); /* Magenta for level label */
+}
+
+.category-text {
+    font-weight: 900;
+    font-size: 20px; /* Larger font for sub-category */
+    color: var(--primary-color);
+    flex-basis: 100%; /* Force to new line */
+    text-align: center; /* Center the text */
+    margin-top: 8px; /* Add some space above */
+}
+
+/* --- History Log Styles --- */
+#history-log-container {
+    background: #FFFFFF;
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    width: 100%;
+    max-width: 1100px;
+    margin-bottom: 20px;
+    display: none; /* Initially hidden */
+}
+
+#history-log-container h2 {
+    color: var(--primary-color);
+    text-align: center;
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    border-bottom: 2px solid var(--secondary-color);
+    padding-bottom: 1rem;
+}
+
+.history-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 1rem;
+}
+
+.history-table th, .history-table td {
+    padding: 12px 15px;
+    border-bottom: 1px solid #e0e0e0;
+    text-align: left;
+}
+
+.history-table thead {
+    background-color: var(--secondary-color);
+    font-weight: 700;
+}
+
+.history-table tbody tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+.history-total {
+    margin-top: 1.5rem;
+    text-align: right;
+    font-size: 1.5rem;
+    font-weight: 900;
+    color: var(--primary-color);
+}

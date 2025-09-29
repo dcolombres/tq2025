@@ -9,6 +9,11 @@ document.addEventListener('DOMContentLoaded', () => {
     let isGameActive = false;
     let isEditorMode = false;
     let totalPoints = 0;
+    let currentMode = null;
+    let roundsHistory = [];
+    let loadingInterval;
+    let currentRound = 0;
+    const totalRounds = 6;
 
     // --- DOM ELEMENTS ---
     const categorySelectionContainer = document.getElementById('category-selection-container');
@@ -88,20 +93,29 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     selectedMainCategoryId = e.target.dataset.id;
                     selectedMainCategoryName = e.target.dataset.name;
-                    startGame();
+                    startGame(selectedMainCategoryName);
                 }
             }
         });
 
-        finishButton.addEventListener('click', () => {
-            if (isGameActive) endGame(true);
+    document.getElementById('change-mode-button').addEventListener('click', () => {
+        // Simplemente recarga la página para volver a la selección de categoría
+        window.location.reload();
+    });
+
+        document.getElementById('new-round-button').addEventListener('click', () => {
+            if (currentMode) {
+                startGame(currentMode);
+            }
         });
+
+        finishButton.addEventListener('click', () => endGame(true));
 
         document.body.addEventListener('click', e => {
             if (e.target === resultsModal) resultsModal.classList.remove('show');
             if (e.target === instructionsModal) instructionsModal.classList.remove('show');
             if (e.target.matches('.close-modal')) e.target.closest('.modal').classList.remove('show');
-            if (e.target.id === 'instructions-button') instructionsModal.classList.add('show');
+            if (e.target.closest('.instructions-trigger')) instructionsModal.classList.add('show');
             if (e.target.id === 'change-mode-button') hardResetGame();
             if (e.target.id === 'play-again-button') softResetGame();
             if (e.target.matches('.btn-accept-word')) acceptAndAddWord(e.target);
@@ -119,41 +133,78 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- GAME FLOW & STATE MANAGEMENT ---
-    async function startGame() {
-        categorySelectionContainer.style.display = 'none';
-        gameHeader.style.display = 'flex';
-        alphabetGrid.style.display = 'grid';
-        finishButton.style.display = 'block';
-        document.getElementById('resultsContainer').style.display = 'none';
-        document.getElementById('wordList').innerHTML = '';
+function resetGame() {
+    if (timer) clearInterval(timer);
+    isGameActive = false;
+    totalPoints = 0;
+    if (document.querySelector('.timer')) document.querySelector('.timer').textContent = '02:40';
+    
+    const inputs = document.querySelectorAll('.letter-input');
+    inputs.forEach(input => {
+        input.value = '';
+        input.disabled = false; // Re-enable for the new round
+        input.className = 'letter-input'; // Reset validation styles
+    });
 
-        try {
-            const response = await fetch(`game_logic.php?action=get_random_category&categoria_id=${selectedMainCategoryId}`);
-            if (!response.ok) throw new Error(`Server error: ${response.statusText}`);
-            const category = await response.json();
-            if (category.error) {
-                alert('Error al cargar la categoría: ' + category.error);
-                hardResetGame();
+    const finishButton = document.getElementById('finishButton');
+    if (finishButton) {
+        finishButton.disabled = false;
+    }
+    document.getElementById('resultsContainer').style.display = 'none';
+}
+
+
+
+function startGame(mode) {
+    currentMode = mode;
+    document.getElementById('category-selection-container').style.display = 'none';
+    document.querySelector('.game-header').style.display = 'flex';
+    currentRound++;
+    const roundCounter = document.querySelector('.round-counter');
+    roundCounter.textContent = `Ronda ${currentRound} de ${totalRounds}`;
+    roundCounter.style.display = 'block';
+    document.querySelector('.alphabet-grid').style.display = 'grid';
+    document.getElementById('finishButton').style.display = 'block';
+
+
+    fetch(`get_categorias.php?mode=${mode}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                showCustomAlert(data.error, 'Error al Cargar');
+                // Re-show category selection if there's an error
+                document.getElementById('category-selection-container').style.display = 'block';
+                document.querySelector('.game-header').style.display = 'none';
+                document.querySelector('.alphabet-grid').style.display = 'none';
+                document.getElementById('finishButton').style.display = 'none';
                 return;
             }
+            selectedCategory = data;
+            const labelMode = document.querySelector('.label-mode');
+            if (labelMode) labelMode.textContent = mode;
 
-            categoryDisplay.innerHTML = `${selectedMainCategoryName} / ${category.nivel_nombre} / ${category.nombre}`;
-            currentSubcategoryId = category.id;
-            currentCategoryAllowsExternalValidation = !!category.permite_validacion_externa;
+            const labelLevel = document.querySelector('.label-level');
+            if (labelLevel) labelLevel.textContent = selectedCategory.nivel;
 
-            startTimer();
-            document.querySelectorAll('.letter-input').forEach(input => { input.disabled = false; input.value = ''; });
-            document.querySelectorAll('.letter-input')[0].focus();
-        } catch (error) {
-            console.error('Failed to fetch category:', error);
-            alert('No se pudo conectar con el servidor para obtener una categoría.');
-            hardResetGame();
-        }
-    }
+            const categoryText = document.querySelector('.category-text');
+            if (categoryText) categoryText.textContent = selectedCategory.nombre_categoria;
+
+            // --- FIX: Assign fetched data to global state variables ---
+            currentSubcategoryId = data.id_subcategoria;
+            currentCategoryAllowsExternalValidation = !!data.permite_api;
+            
+            resetGame();
+            startTimer(160); // 2:40 minutes
+        })
+        .catch(error => {
+            console.error('Error al obtener la categoría:', error);
+            showCustomAlert('No se pudo cargar una categoría. Inténtalo de nuevo.', 'Error de Red');
+        });
+}
 
     function softResetGame() {
         resultsModal.classList.remove('show');
-        startGame();
+        startGame(currentMode);
     }
 
     function hardResetGame() {
@@ -163,13 +214,15 @@ document.addEventListener('DOMContentLoaded', () => {
         gameHeader.style.display = 'none';
         alphabetGrid.style.display = 'none';
         finishButton.style.display = 'none';
+        document.querySelector('.round-counter').style.display = 'none';
+        currentRound = 0;
         isGameActive = false;
         if(timer) clearInterval(timer);
         selectedMainCategoryId = null;
-        currentSubcategoryId = null;
-        document.querySelector('.score').textContent = 'Puntos: 0';
-        document.querySelector('.timer').textContent = '02:40';
-        categoryDisplay.innerHTML = 'CATEGORÍA';
+            currentSubcategoryId = null;
+            if (document.querySelector('.timer')) document.querySelector('.timer').textContent = '02:40';
+            if (document.querySelector('.label-mode')) document.querySelector('.label-mode').textContent = '';        if (document.querySelector('.label-level')) document.querySelector('.label-level').textContent = '';
+        if (document.querySelector('.category-text')) document.querySelector('.category-text').textContent = 'Elige modo...';
         loadMainCategories();
     }
 
@@ -192,17 +245,53 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function endGame(earlyFinish = false) {
+        if (earlyFinish) {
+            const inputs = document.querySelectorAll('.letter-input');
+            const filledInputs = Array.from(inputs).filter(input => input.value.trim() !== '').length;
+            const timeConditionMet = timeLeft <= 100;
+            const answersConditionMet = filledInputs >= 15;
+
+
+
+            if (!timeConditionMet && !answersConditionMet) {
+                showCustomAlert('Debés esperar 1 minuto o rellenar un mínimo de 15 palabras para activar el TUTTI QUANTI.\n\nRecordá que las respuestas incorrectas y vacías restan puntos.');
+                return; // Stop the function from proceeding
+            }
+        }
+
         clearInterval(timer);
         isGameActive = false;
         document.querySelectorAll('.letter-input').forEach(input => input.disabled = true);
-        calculateScore(earlyFinish).catch(error => {
-            console.error("Error calculating score:", error);
-            alert("Hubo un error al calcular los resultados. Por favor, intenta de nuevo.");
-        });
+        const loadingModal = document.getElementById('loading-modal');
+        const loadingMessage = document.getElementById('loading-message');
+        const messages = ["Verificando respuestas...", "Validando con fuentes externas...", "Calculando puntuación..."];
+        let messageIndex = 0;
+
+        loadingModal.classList.add('show');
+        loadingMessage.textContent = messages[messageIndex];
+
+        loadingInterval = setInterval(() => {
+            messageIndex = (messageIndex + 1) % messages.length;
+            loadingMessage.textContent = messages[messageIndex];
+        }, 1500);
+
+        calculateScore(earlyFinish)
+            .catch(error => {
+                console.error("Error calculating score:", error);
+                showCustomAlert("Hubo un error al calcular los resultados. Por favor, intentá de nuevo.", "Error de Cálculo");
+            })
+            .finally(() => {
+                clearInterval(loadingInterval);
+                loadingModal.classList.remove('show');
+            });
     }
 
     async function calculateScore(earlyFinish = false) {
-        if (currentSubcategoryId === null) return;
+        if (currentSubcategoryId === null) {
+            console.error("Critical error: currentSubcategoryId is null in calculateScore.");
+            return;
+        }
+
         const inputs = document.querySelectorAll('.letter-input');
         totalPoints = 0;
         let validWords = 0;
@@ -218,10 +307,11 @@ document.addEventListener('DOMContentLoaded', () => {
         resultsData.forEach((validation, index) => {
             let points = 0;
             switch (validation.status) {
-                case 'CORRECTO': points = 10; validWords++; break;
+                case 'CORRECTO': points = 15; validWords++; break;
                 case 'MAL_ESCRITO': points = 7; validWords++; break;
                 case 'VALIDADO_EXTERNAMENTE': points = 5; validWords++; break;
                 case 'INCORRECTO': points = -3; break;
+                case 'VACIO': points = -3; break;
             }
             totalPoints += points;
             validation.word = inputs[index].value.trim();
@@ -235,7 +325,6 @@ document.addEventListener('DOMContentLoaded', () => {
             resultsData.push({ status: 'BONUS', explanation: `Tiempo restante: ${timeLeft}s`, points: timeBonus });
         }
 
-        document.querySelector('.score').textContent = `Puntos: ${totalPoints}`;
         showResultsModal(resultsData);
     }
 
@@ -270,7 +359,7 @@ document.addEventListener('DOMContentLoaded', () => {
             else if (result.points > 0) pointsClass = 'points-5';
             else if (result.points < 0) pointsClass = 'points-negative';
             
-            const pointsText = result.status === 'VACIO' ? '0 pts' : `${result.points > 0 ? '+' : ''}${result.points} pts`;
+            const pointsText = `${result.points > 0 ? '+' : ''}${result.points} pts`;
             let editorButton = '';
             if (isEditorMode && result.status === 'INCORRECTO' && result.word) {
                 editorButton = `<button class="btn-accept-word" data-word="${result.word}" data-subcatid="${currentSubcategoryId}">Aceptar y Añadir</button>`;
@@ -292,9 +381,84 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="word-list">${resultsHTML}</div>
             <hr style="margin: 20px 0; border: 1px solid var(--secondary-color);">
             <p style="text-align: center; font-size: 1.5rem; font-weight: bold; color: var(--primary-color);">Puntuación Final: <strong>${totalPoints}</strong></p>
-            <button id="play-again-button" class="finish-button" style="margin: 20px auto 0 auto;"><i class="fas fa-redo"></i> Jugar de Nuevo</button>
+            <button id="play-again-button" class="finish-button" style="margin: 20px auto 0 auto;"><i class="fas fa-redo"></i> Próxima Ronda</button>
         `;
         resultsModal.classList.add('show');
+
+        // --- Handle End of 6-Round Game ---
+        if (currentRound >= totalRounds) {
+            const playAgainButton = document.getElementById('play-again-button');
+            if (playAgainButton) {
+                playAgainButton.style.display = 'none';
+            }
+            const modalTitle = modalResults.querySelector('.results-title');
+            if (modalTitle) {
+                modalTitle.textContent = '¡Juego Completo!';
+            }
+        }
+
+        // --- HISTORY LOG ---
+        const roundData = {
+            mode: document.querySelector('.label-mode').textContent,
+            level: selectedCategory.nivel,
+            subcategory: selectedCategory.nombre_categoria,
+            points: totalPoints
+        };
+        roundsHistory.push(roundData);
+        renderHistoryLog();
+    }
+
+    function renderHistoryLog() {
+        const historyContainer = document.getElementById('history-log-container');
+        if (!roundsHistory.length) return; // No hacer nada si el historial está vacío
+
+        historyContainer.style.display = 'block'; // Mostrar el contenedor
+
+        let grandTotal = 0;
+        let tableRows = '';
+
+        roundsHistory.forEach(round => {
+            grandTotal += round.points;
+            tableRows += `
+                <tr>
+                    <td>${round.mode}</td>
+                    <td>${round.level}</td>
+                    <td>${round.subcategory}</td>
+                    <td><strong>${round.points}</strong></td>
+                </tr>
+            `;
+        });
+
+        historyContainer.innerHTML = `
+            <h2>Historial de Puntuaciones</h2>
+            <table class="history-table">
+                <thead>
+                    <tr>
+                        <th>Modo</th>
+                        <th>Nivel</th>
+                        <th>Subcategoría</th>
+                        <th>Puntos</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${tableRows}
+                </tbody>
+            </table>
+            <div class="history-total">
+                Puntuación Total: ${grandTotal}
+            </div>
+        `;
+    }
+
+    function showCustomAlert(message, title = 'Aviso') {
+        const alertModal = document.getElementById('alert-modal');
+        const alertTitle = document.getElementById('alert-modal-title');
+        const alertText = document.getElementById('alert-modal-text');
+
+        alertTitle.textContent = title;
+        alertText.innerHTML = message.replace(/\n/g, '<br>'); // Reemplazar saltos de línea
+
+        alertModal.classList.add('show');
     }
 
     async function acceptAndAddWord(button) {
@@ -319,14 +483,13 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Recalculate score: remove -3, add +10 -> net change is +13
             totalPoints += 13;
-            document.querySelector('.score').textContent = `Puntos: ${totalPoints}`;
             document.querySelector('#modalResults p strong').textContent = totalPoints;
 
             const small = wordItem.querySelector('small');
             small.innerHTML = `Palabra añadida a la base de datos.<br>Fuente: Base de Datos | +10 pts`;
 
         } catch (error) {
-            alert('Error al añadir la palabra: ' + error.message);
+            showCustomAlert('Error al añadir la palabra: ' + error.message, 'Error');
         }
     }
 
