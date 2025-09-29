@@ -18,7 +18,8 @@ $action = $_GET['action'] ?? '';
 if ($action === 'get_random_category') {
     getRandomCategory($conn);
 } elseif ($action === 'validate_word') {
-    validateWord($conn);
+    $input = json_decode(file_get_contents('php://input'), true);
+    validateWord($conn, $input);
 } else {
     echo json_encode(["error" => "Invalid action specified."]);
 }
@@ -121,8 +122,17 @@ function validateWithWikipedia($word, $gameCategory) {
     $pageId = array_key_first($pages);
 
     if (!isset($pages[$pageId]['categories'])) {
+        // DEBUGGING: Print no categories found
+        echo "<!-- Wikipedia Debug: No categories found for page ID " . htmlspecialchars($pageId) . " -->\n";
         return false; // Article has no categories
     }
+
+    // DEBUGGING: Print all categories
+    $all_categories = [];
+    foreach ($pages[$pageId]['categories'] as $category) {
+        $all_categories[] = $category['title'];
+    }
+    echo "<!-- Wikipedia Debug: Categories Found: " . htmlspecialchars(implode(", ", $all_categories)) . " -->\n";
 
     // --- Step 3: Check if any Wikipedia category matches the game category ---
     foreach ($pages[$pageId]['categories'] as $category) {
@@ -139,8 +149,7 @@ function validateWithWikipedia($word, $gameCategory) {
 /**
  * Validates a word against the database for a given subcategory and letter.
  */
-function validateWord($conn) {
-    $input = json_decode(file_get_contents('php://input'), true);
+function validateWord($conn, $input) {
 
     $word = $input['word'] ?? '';
     $letter = $input['letter'] ?? '';
