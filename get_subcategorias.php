@@ -1,8 +1,4 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
-
 header('Content-Type: application/json');
 require_once __DIR__ . '/db_config.php';
 
@@ -33,32 +29,47 @@ if ($get_all) {
         die(json_encode(['error' => 'Error en la ejecución de la consulta (execute): ' . $stmt->error]));
     }
 
-    $result = $stmt->get_result();
-    if (!$result) {
-        http_response_code(500);
-        die(json_encode(['error' => 'Error al obtener el resultado (get_result): ' . $stmt->error]));
-    }
-
-    $subcategorias = [];
-    while ($row = $result->fetch_assoc()) {
-        $subcategorias[] = $row;
-    }
+    // Refactor to avoid get_result()
+    $stmt->store_result();
     
-    echo json_encode($subcategorias);
+    if ($stmt->num_rows > 0) {
+        $stmt->bind_result($id, $nombre, $nivel_nombre, $categoria_nombre);
+        
+        $subcategorias = [];
+        while ($stmt->fetch()) {
+            $subcategorias[] = [
+                'id' => $id,
+                'nombre' => $nombre,
+                'nivel_nombre' => $nivel_nombre,
+                'categoria_nombre' => $categoria_nombre
+            ];
+        }
+        echo json_encode($subcategorias);
+    } else {
+        echo json_encode([]);
+    }
     
     $stmt->close();
 
-} else { // This part is for the old functionality, might need debugging too if used.
+} else {
+    // This part is for the old functionality, refactoring it as well for consistency.
     $categoria_id = isset($_GET['categoria_id']) ? (int)$_GET['categoria_id'] : 0;
     if ($categoria_id > 0) {
         $sql = "SELECT id, nombre, permite_validacion_externa FROM subcategorias WHERE categoria_id = ? ORDER BY nombre ASC";
         $stmt = $conn->prepare($sql);
         $stmt->bind_param("i", $categoria_id);
         $stmt->execute();
-        $result = $stmt->get_result();
+        
+        $stmt->store_result();
+        $stmt->bind_result($id, $nombre, $permite_validacion);
+
         $subcategorias = [];
-        while ($row = $result->fetch_assoc()) {
-            $subcategorias[] = $row;
+        while ($stmt->fetch()) {
+            $subcategorias[] = [
+                'id' => $id,
+                'nombre' => $nombre,
+                'permite_validacion_externa' => $permite_validacion
+            ];
         }
         echo json_encode($subcategorias);
         $stmt->close();
