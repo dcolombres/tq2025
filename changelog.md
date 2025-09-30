@@ -7,6 +7,9 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/en/1.0.
 ## [Unreleased]
 
 ### Added
+- **Carga Masiva de Palabras**:
+  - Se ha creado la página `csvwords.html` para permitir la inserción masiva de palabras en una subcategoría específica mediante una lista separada por comas.
+  - El sistema calcula y muestra el número de palabras nuevas insertadas y las duplicadas que fueron omitidas.
 - Sistema de juego por rondas (6 rondas por partida completa) con contador visible.
 - Historial de puntuaciones entre rondas con total general.
 - Se añade un botón "Nueva Ronda" al finalizar el juego para permitir reiniciar sin recargar la página.
@@ -33,6 +36,11 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/en/1.0.
   - Se han revisado, estandarizado y documentado todos los archivos `.php` del backend para mejorar la legibilidad y el mantenimiento futuro.
 
 ### Fixed
+- **Carga Masiva de Palabras**:
+  - Se corrigió un error que impedía la inserción de palabras debido a una consulta SQL incorrecta en `insert_csv_words.php`.
+  - Se solucionó un error de "Duplicate entry" al implementar `INSERT IGNORE`, permitiendo que el script omita palabras ya existentes sin detenerse.
+- **Obtención de Subcategorías**:
+  - Se reparó un error en `get_subcategorias.php` que causaba un fallo en la carga del desplegable en `csvwords.html` debido a una consulta SQL con un `JOIN` incorrecto.
 - **Páginas de Administración:** Corregida la incompatibilidad con la base de datos en los scripts (`get_stats.php`, `create_structure.php`) que impedían el funcionamiento de `TQinsert.html`.
 - **Modo Party:** Se implementó una lógica para evitar la repetición de las últimas 10 subcategorías.
 - **Estabilidad General:** Se corrigieron numerosos bugs críticos que impedían la carga de categorías, el inicio de las rondas y el cálculo de la puntuación final.
