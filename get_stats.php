@@ -10,14 +10,11 @@
  */
 
 header('Content-Type: application/json');
-error_reporting(0);
-ini_set('display_errors', 0);
 
 // --- Conexión a la Base de Datos ---
 require_once __DIR__ . '/db_config.php';
 $conn = new mysqli($servername, $username, $password, $dbname);
 
-// Verificar la conexión
 if ($conn->connect_error) {
     http_response_code(500);
     die(json_encode(["error" => "Conexión fallida a la base de datos."]));
@@ -46,18 +43,35 @@ $sql = "
         c.nombre, n.nombre, s.nombre;
 ";
 
-$result = $conn->query($sql);
-
-// --- Procesamiento de Resultados ---
-$stats = [];
-if ($result && $result->num_rows > 0) {
-    while ($row = $result->fetch_assoc()) {
-        $stats[] = $row;
-    }
+// Refactor para no usar get_result()
+$stmt = $conn->prepare($sql);
+if (!$stmt) {
+    http_response_code(500);
+    die(json_encode(['error' => 'Error al preparar la consulta: ' . $conn->error]));
 }
 
-// --- Respuesta JSON ---
-echo json_encode($stats);
+if (!$stmt->execute()) {
+    http_response_code(500);
+    die(json_encode(['error' => 'Error al ejecutar la consulta: ' . $stmt->error]));
+}
 
+$stmt->store_result();
+$stmt->bind_result($subcategoria_id, $categoria, $nivel, $subcategoria, $permite_validacion_externa, $cantidad_palabras);
+
+$stats = [];
+while ($stmt->fetch()) {
+    $stats[] = [
+        'subcategoria_id' => $subcategoria_id,
+        'categoria' => $categoria,
+        'nivel' => $nivel,
+        'subcategoria' => $subcategoria,
+        'permite_validacion_externa' => $permite_validacion_externa,
+        'cantidad_palabras' => $cantidad_palabras
+    ];
+}
+
+$stmt->close();
 $conn->close();
+
+echo json_encode($stats);
 ?>
