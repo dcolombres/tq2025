@@ -39,13 +39,13 @@ document.addEventListener('DOMContentLoaded', () => {
     function addEditorButtons() {
         const controls = document.querySelector('.header-controls');
         const gestionButton = document.createElement('a');
-        gestionButton.href = 'gestion.html';
+        gestionButton.href = 'gestion.php';
         gestionButton.target = '_blank';
         gestionButton.className = 'editor-button';
         gestionButton.innerHTML = '<i class="fas fa-cog"></i> Gestión';
 
         const insertButton = document.createElement('a');
-        insertButton.href = 'TQinsert.html';
+        insertButton.href = 'insert.php';
         insertButton.target = '_blank';
         insertButton.className = 'editor-button';
         insertButton.innerHTML = '<i class="fas fa-plus-square"></i> Insertar';
@@ -65,8 +65,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-
-
     // --- EVENT LISTENERS SETUP ---
     function setupEventListeners() {
         categoryButtonsContainer.addEventListener('click', e => {
@@ -82,7 +80,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
     document.getElementById('change-mode-button').addEventListener('click', () => {
-        // Simplemente recarga la página para volver a la selección de categoría
         window.location.reload();
     });
 
@@ -116,74 +113,69 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- GAME FLOW & STATE MANAGEMENT ---
-function resetGame() {
-    if (timer) clearInterval(timer);
-    isGameActive = false;
-    totalPoints = 0;
-    if (document.querySelector('.timer')) document.querySelector('.timer').textContent = '02:40';
-    
-    const inputs = document.querySelectorAll('.letter-input');
-    inputs.forEach(input => {
-        input.value = '';
-        input.disabled = false; // Re-enable for the new round
-        input.className = 'letter-input'; // Reset validation styles
-    });
-
-    const finishButton = document.getElementById('finishButton');
-    if (finishButton) {
-        finishButton.disabled = false;
-    }
-    document.getElementById('resultsContainer').style.display = 'none';
-}
-
-
-
-function startGame(mode) {
-    currentMode = mode;
-    document.getElementById('category-selection-container').style.display = 'none';
-    document.querySelector('.game-header').style.display = 'flex';
-    currentRound++;
-    const roundCounter = document.querySelector('.round-counter');
-    roundCounter.textContent = `Ronda ${currentRound} de ${totalRounds}`;
-    roundCounter.style.display = 'block';
-    document.querySelector('.alphabet-grid').style.display = 'grid';
-    document.getElementById('finishButton').style.display = 'block';
-
-
-    fetch(`index.php?action=get_subcategory&mode=${mode}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.error) {
-                showCustomAlert(data.error, 'Error al Cargar');
-                // Re-show category selection if there's an error
-                document.getElementById('category-selection-container').style.display = 'block';
-                document.querySelector('.game-header').style.display = 'none';
-                document.querySelector('.alphabet-grid').style.display = 'none';
-                document.getElementById('finishButton').style.display = 'none';
-                return;
-            }
-            selectedCategory = data;
-            const labelMode = document.querySelector('.label-mode');
-            if (labelMode) labelMode.textContent = mode;
-
-            const labelLevel = document.querySelector('.label-level');
-            if (labelLevel) labelLevel.textContent = selectedCategory.nivel;
-
-            const categoryText = document.querySelector('.category-text');
-            if (categoryText) categoryText.textContent = selectedCategory.nombre_categoria;
-
-            // --- FIX: Assign fetched data to global state variables ---
-            currentSubcategoryId = data.id_subcategoria;
-            currentCategoryAllowsExternalValidation = !!data.permite_api;
-            
-            resetGame();
-            startTimer(160); // 2:40 minutes
-        })
-        .catch(error => {
-            console.error('Error al obtener la categoría:', error);
-            showCustomAlert('No se pudo cargar una categoría. Inténtalo de nuevo.', 'Error de Red');
+    function resetGame() {
+        if (timer) clearInterval(timer);
+        isGameActive = false;
+        totalPoints = 0;
+        if (document.querySelector('.timer')) document.querySelector('.timer').textContent = '02:40';
+        
+        const inputs = document.querySelectorAll('.letter-input');
+        inputs.forEach(input => {
+            input.value = '';
+            input.disabled = false;
+            input.className = 'letter-input';
         });
-}
+
+        const finishButton = document.getElementById('finishButton');
+        if (finishButton) {
+            finishButton.disabled = false;
+        }
+        document.getElementById('resultsContainer').style.display = 'none';
+    }
+
+    function startGame(mode) {
+        currentMode = mode;
+        document.getElementById('category-selection-container').style.display = 'none';
+        document.querySelector('.game-header').style.display = 'flex';
+        currentRound++;
+        const roundCounter = document.querySelector('.round-counter');
+        roundCounter.textContent = `Ronda ${currentRound} de ${totalRounds}`;
+        roundCounter.style.display = 'block';
+        document.querySelector('.alphabet-grid').style.display = 'grid';
+        document.getElementById('finishButton').style.display = 'block';
+
+        fetch(`index.php?action=get_subcategory&mode=${mode}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    showCustomAlert(data.error, 'Error al Cargar');
+                    document.getElementById('category-selection-container').style.display = 'block';
+                    document.querySelector('.game-header').style.display = 'none';
+                    document.querySelector('.alphabet-grid').style.display = 'none';
+                    document.getElementById('finishButton').style.display = 'none';
+                    return;
+                }
+                selectedCategory = data;
+                const labelMode = document.querySelector('.label-mode');
+                if (labelMode) labelMode.textContent = mode;
+
+                const labelLevel = document.querySelector('.label-level');
+                if (labelLevel) labelLevel.textContent = selectedCategory.nivel;
+
+                const categoryText = document.querySelector('.category-text');
+                if (categoryText) categoryText.textContent = selectedCategory.nombre_categoria;
+
+                currentSubcategoryId = data.id_subcategoria;
+                currentCategoryAllowsExternalValidation = !!data.permite_api;
+                
+                resetGame();
+                startTimer(160);
+            })
+            .catch(error => {
+                console.error('Error al obtener la categoría:', error);
+                showCustomAlert('No se pudo cargar una categoría. Inténtalo de nuevo.', 'Error de Red');
+            });
+    }
 
     function softResetGame() {
         resultsModal.classList.remove('show');
@@ -202,11 +194,11 @@ function startGame(mode) {
         isGameActive = false;
         if(timer) clearInterval(timer);
         selectedMainCategoryId = null;
-            currentSubcategoryId = null;
-            if (document.querySelector('.timer')) document.querySelector('.timer').textContent = '02:40';
-            if (document.querySelector('.label-mode')) document.querySelector('.label-mode').textContent = '';        if (document.querySelector('.label-level')) document.querySelector('.label-level').textContent = '';
+        currentSubcategoryId = null;
+        if (document.querySelector('.timer')) document.querySelector('.timer').textContent = '02:40';
+        if (document.querySelector('.label-mode')) document.querySelector('.label-mode').textContent = '';
+        if (document.querySelector('.label-level')) document.querySelector('.label-level').textContent = '';
         if (document.querySelector('.category-text')) document.querySelector('.category-text').textContent = 'Elige modo...';
-
     }
 
     function startTimer() {
@@ -234,11 +226,11 @@ function startGame(mode) {
             const timeConditionMet = timeLeft <= 100;
             const answersConditionMet = filledInputs >= 15;
 
-
-
             if (!timeConditionMet && !answersConditionMet) {
-                showCustomAlert('Debés esperar 1 minuto o rellenar un mínimo de 15 palabras para activar el TUTTI QUANTI.\n\nRecordá que las respuestas incorrectas y vacías restan puntos.');
-                return; // Stop the function from proceeding
+                showCustomAlert('Debés esperar 1 minuto o rellenar un mínimo de 15 palabras para activar el TUTTI QUANTI.
+
+Recordá que las respuestas incorrectas y vacías restan puntos.');
+                return;
             }
         }
 
@@ -368,7 +360,6 @@ function startGame(mode) {
         `;
         resultsModal.classList.add('show');
 
-        // --- Handle End of 6-Round Game ---
         if (currentRound >= totalRounds) {
             const playAgainButton = document.getElementById('play-again-button');
             if (playAgainButton) {
@@ -380,7 +371,6 @@ function startGame(mode) {
             }
         }
 
-        // --- HISTORY LOG ---
         const roundData = {
             mode: document.querySelector('.label-mode').textContent,
             level: selectedCategory.nivel,
@@ -393,9 +383,9 @@ function startGame(mode) {
 
     function renderHistoryLog() {
         const historyContainer = document.getElementById('history-log-container');
-        if (!roundsHistory.length) return; // No hacer nada si el historial está vacío
+        if (!roundsHistory.length) return;
 
-        historyContainer.style.display = 'block'; // Mostrar el contenedor
+        historyContainer.style.display = 'block';
 
         let grandTotal = 0;
         let tableRows = '';
@@ -439,7 +429,7 @@ function startGame(mode) {
         const alertText = document.getElementById('alert-modal-text');
 
         alertTitle.textContent = title;
-        alertText.innerHTML = message.replace(/\n/g, '<br>'); // Reemplazar saltos de línea
+        alertText.innerHTML = message.replace(/\n/g, '<br>');
 
         alertModal.classList.add('show');
     }
@@ -457,14 +447,12 @@ function startGame(mode) {
             const data = await response.json();
             if (!data.success) throw new Error(data.message || 'Failed to add word.');
 
-            // Update UI
             button.textContent = '¡Añadida!';
             button.disabled = true;
             const wordItem = button.closest('.word-item');
             wordItem.classList.remove('points-negative');
             wordItem.classList.add('points-10');
             
-            // Recalculate score: remove -3, add +10 -> net change is +13
             totalPoints += 13;
             document.querySelector('#modalResults p strong').textContent = totalPoints;
 
@@ -476,6 +464,5 @@ function startGame(mode) {
         }
     }
 
-    // --- START THE APP ---
     initializeApp();
 });
