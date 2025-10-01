@@ -13,27 +13,52 @@ if ($conn->connect_error) {
     die(json_encode(['error' => 'Conexión fallida: ' . $conn->connect_error]));
 }
 
-// --- DIAGNOSTIC QUERY ---
-$sql = "SELECT 1";
-$stmt = $conn->prepare($sql);
+// Usamos la consulta que sabemos que funciona, pero sin el conteo de palabras por ahora.
+$sql = "
+    SELECT 
+        s.id AS subcategoria_id,
+        c.nombre AS categoria, 
+        n.nombre AS nivel,
+        s.nombre AS subcategoria, 
+        s.permite_validacion_externa
+    FROM 
+        subcategorias s
+    JOIN 
+        categorias c ON s.categoria_id = c.id
+    LEFT JOIN
+        niveles n ON s.nivel_id = n.id
+    ORDER BY 
+        c.nombre, n.nombre, s.nombre;
+";
 
+$stmt = $conn->prepare($sql);
 if (!$stmt) {
     http_response_code(500);
-    die(json_encode(['error' => 'Fallo en prepare() para la consulta de diagnóstico.', 'details' => $conn->error]));
+    die(json_encode(['error' => 'Fallo en prepare() para la consulta simplificada.', 'details' => $conn->error]));
 }
 
 if (!$stmt->execute()) {
     http_response_code(500);
-    die(json_encode(['error' => 'Fallo en execute() para la consulta de diagnóstico.', 'details' => $stmt->error]));
+    die(json_encode(['error' => 'Fallo en execute() para la consulta simplificada.', 'details' => $stmt->error]));
 }
 
 $stmt->store_result();
-$stmt->bind_result($one);
-$stmt->fetch();
+$stmt->bind_result($subcategoria_id, $categoria, $nivel, $subcategoria, $permite_validacion_externa);
 
-// Si llegamos aquí, el script y la conexión funcionan. El problema es la consulta SQL original.
-die(json_encode(['success' => true, 'message' => 'La consulta de diagnóstico se ejecutó correctamente.', 'data' => $one]));
+$stats = [];
+while ($stmt->fetch()) {
+    $stats[] = [
+        'subcategoria_id' => $subcategoria_id,
+        'categoria' => $categoria,
+        'nivel' => $nivel,
+        'subcategoria' => $subcategoria,
+        'permite_validacion_externa' => $permite_validacion_externa,
+        'cantidad_palabras' => 0 // Devolvemos 0 temporalmente
+    ];
+}
 
 $stmt->close();
 $conn->close();
+
+echo json_encode($stats);
 ?>
