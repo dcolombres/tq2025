@@ -112,7 +112,9 @@ $isEditor = isset($_GET['editor']) && $_GET['editor'] === 'true';
             }
             ?>
         </div>
-        <button id="instructions-button" class="instructions-trigger"><i class="fas fa-info-circle"></i></button>
+        <div>
+            <button id="instructions-button" class="instructions-trigger"><i class="fas fa-info-circle"></i></button>
+        </div>
     </div>
 
     <!-- Encabezado del Juego -->
