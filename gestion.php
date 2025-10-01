@@ -6,7 +6,7 @@ require_once __DIR__ . '/db_config.php';
 // --- DATA FETCHING FUNCTIONS ---
 
 function getCategorias() {
-    global $servername, $username, $password, $dbname;
+    require __DIR__ . '/db_config.php';
     $conn = new mysqli($servername, $username, $password, $dbname);
     if ($conn->connect_error) return [];
     
@@ -26,7 +26,7 @@ function getCategorias() {
 }
 
 function getNiveles() {
-    global $servername, $username, $password, $dbname;
+    require __DIR__ . '/db_config.php';
     $conn = new mysqli($servername, $username, $password, $dbname);
     if ($conn->connect_error) return [];
 
@@ -46,7 +46,7 @@ function getNiveles() {
 }
 
 function getSubcategoriasStats() {
-    global $servername, $username, $password, $dbname;
+    require __DIR__ . '/db_config.php';
     $conn = new mysqli($servername, $username, $password, $dbname);
     if ($conn->connect_error) return [];
 

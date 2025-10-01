@@ -1,4 +1,9 @@
+.gitignore
 db_config.php
+error_log
+
 base.csv
 debug_log.txt
 check_db.php
+BACKUP/
+.DS_Store
