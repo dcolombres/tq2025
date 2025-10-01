@@ -3,52 +3,42 @@ ini_set('display_errors', 1);
 error_reporting(E_ALL);
 require_once __DIR__ . '/db_config.php';
 
-// --- AJAX ENDPOINT: GET SUBCATEGORIAS ---
-if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['categoria_id'])) {
-    header('Content-Type: application/json');
-    $categoria_id = (int)$_GET['categoria_id'];
-    $conn = new mysqli($servername, $username, $password, $dbname);
-    if ($conn->connect_error) {
-        http_response_code(500);
-        die(json_encode(['error' => 'DB connection failed']));
-    }
-    $sql = "SELECT id, nombre FROM subcategorias WHERE categoria_id = ? ORDER BY nombre ASC";
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("i", $categoria_id);
-    $stmt->execute();
-    $stmt->store_result();
-    $stmt->bind_result($id, $nombre);
-    $subcategorias = [];
-    while ($stmt->fetch()) {
-        $subcategorias[] = ['id' => $id, 'nombre' => $nombre];
-    }
-    $stmt->close();
-    $conn->close();
-    echo json_encode($subcategorias);
-    exit; // Terminate script after sending JSON
-}
-
-
-// --- FORM PROCESSING & PAGE DISPLAY LOGIC ---
-
 // --- GLOBAL VARIABLES ---
 $message = '';
 $message_type = ''; // 'success' or 'error'
 
 // --- HELPER FUNCTIONS ---
-function getCategoriasOptions() {
+function get_subcategorias_options() {
     global $servername, $username, $password, $dbname;
     $conn = new mysqli($servername, $username, $password, $dbname);
-    if ($conn->connect_error) return '<option value="">Error DB</option>';
-    $sql = "SELECT id, nombre FROM categorias ORDER BY nombre ASC";
-    $stmt = $conn->prepare($sql);
-    $stmt->execute();
-    $stmt->store_result();
-    $stmt->bind_result($id, $nombre);
-    $options = '<option value="">Selecciona una categoría</option>';
-    while ($stmt->fetch()) {
-        $options .= sprintf('<option value="%d">%s</option>', htmlspecialchars($id), htmlspecialchars($nombre));
+    if ($conn->connect_error) {
+        return '<option value="">Error al conectar a la BD</option>';
     }
+
+    $sql = "SELECT s.id, s.nombre, n.nombre as nivel_nombre, c.nombre as categoria_nombre
+            FROM subcategorias s
+            JOIN niveles n ON s.nivel_id = n.id
+            JOIN categorias c ON s.categoria_id = c.id
+            ORDER BY c.nombre, n.nombre, s.nombre";
+    
+    $stmt = $conn->prepare($sql);
+    if (!$stmt || !$stmt->execute()) {
+        return '<option value="">ERROR: ' . htmlspecialchars($conn->error) . '</option>';
+    }
+
+    $stmt->store_result();
+    $stmt->bind_result($id, $nombre, $nivel_nombre, $categoria_nombre);
+
+    $options = '<option value="">Selecciona una subcategoría</option>';
+    if ($stmt->num_rows > 0) {
+        while ($stmt->fetch()) {
+            $display_name = htmlspecialchars("$categoria_nombre > $nivel_nombre > $nombre");
+            $options .= "<option value=\"".htmlspecialchars($id)."\">$display_name</option>";
+        }
+    } else {
+        $options = '<option value="">No hay subcategorías disponibles</option>';
+    }
+    
     $stmt->close();
     $conn->close();
     return $options;
@@ -63,7 +53,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         if (isset($_POST['form_action'])) {
             if ($_POST['form_action'] === 'insert_words') {
-                // Logic from insert_word.php
                 $palabras_str = isset($_POST['palabras']) ? trim($_POST['palabras']) : '';
                 $subcategoria_id = isset($_POST['subcategoria_id']) ? (int)$_POST['subcategoria_id'] : 0;
                 if (empty($palabras_str) || $subcategoria_id === 0) {
@@ -95,7 +84,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
             } elseif ($_POST['form_action'] === 'create_structure') {
-                // Logic from create_structure.php
                 $categoria_nombre = isset($_POST['categoria_principal']) ? trim($_POST['categoria_principal']) : '';
                 $nivel_nombre = isset($_POST['nivel']) ? trim($_POST['nivel']) : '';
                 $subcategoria_str = isset($_POST['subcategoria']) ? trim($_POST['subcategoria']) : '';
@@ -105,17 +93,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 } else {
                      $conn->begin_transaction();
                     try {
-                        // Step 1: Get/Create Categoria
                         $stmt = $conn->prepare("SELECT id FROM categorias WHERE nombre = ?");
                         $stmt->bind_param("s", $categoria_nombre);
                         $stmt->execute(); $stmt->store_result(); $stmt->bind_result($categoria_id);
                         if (!$stmt->fetch()) { $stmt->close(); $stmt = $conn->prepare("INSERT INTO categorias (nombre) VALUES (?)"); $stmt->bind_param("s", $categoria_nombre); $stmt->execute(); $categoria_id = $conn->insert_id; } $stmt->close();
-                        // Step 2: Get/Create Nivel
                         $stmt = $conn->prepare("SELECT id FROM niveles WHERE nombre = ?");
                         $stmt->bind_param("s", $nivel_nombre);
                         $stmt->execute(); $stmt->store_result(); $stmt->bind_result($nivel_id);
                         if (!$stmt->fetch()) { $stmt->close(); $stmt = $conn->prepare("INSERT INTO niveles (nombre) VALUES (?)"); $stmt->bind_param("s", $nivel_nombre); $stmt->execute(); $nivel_id = $conn->insert_id; } $stmt->close();
-                        // Step 3: Create Subcategorias
                         $subcategoria_nombres = array_filter(array_map('trim', explode(',', $subcategoria_str)));
                         $created_count = 0; $skipped_count = 0;
                         $stmt_check = $conn->prepare("SELECT id FROM subcategorias WHERE nombre = ? AND categoria_id = ? AND nivel_id = ?");
@@ -156,7 +141,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .form-group { margin-bottom: 1rem; }
         label { display: block; margin-bottom: 0.5rem; color: #555; font-weight: 600; }
         input[type="text"], select, textarea { width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; font-size: 1rem; }
-        select:disabled { background-color: #eee; }
         button { width: 100%; padding: 0.85rem; background-color: #007bff; color: white; border: none; border-radius: 4px; font-size: 1.1rem; font-weight: 600; cursor: pointer; transition: background-color 0.2s; }
         button:hover { background-color: #0056b3; }
         .status-message { margin-bottom: 1.5rem; text-align: center; font-weight: 600; padding: 0.75rem; border-radius: 4px; }
@@ -181,19 +165,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <form id="insert-form" method="POST" action="insert.php">
             <input type="hidden" name="form_action" value="insert_words">
             <div class="form-group">
-                <label for="categoria">1. Selecciona la Categoría Principal:</label>
-                <select id="categoria" name="categoria" required>
-                    <?php echo getCategoriasOptions(); ?>
+                <label for="subcategoria">Selecciona la Subcategoría:</label>
+                <select id="subcategoria" name="subcategoria_id" required>
+                    <?php echo get_subcategorias_options(); ?>
                 </select>
             </div>
             <div class="form-group">
-                <label for="subcategoria">2. Selecciona la Subcategoría:</label>
-                <select id="subcategoria" name="subcategoria_id" required disabled>
-                    <option value="">Selecciona una categoría principal primero</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="palabras">3. Ingresa las Palabras (separadas por coma):</label>
+                <label for="palabras">Ingresa las Palabras (separadas por coma):</label>
                 <textarea id="palabras" name="palabras" required placeholder="Ej: Argentina, Alemania, Francia" rows="5"></textarea>
             </div>
             <button type="submit">Insertar Palabras</button>
@@ -226,50 +204,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </div>
 
 <script>
-    // --- Lógica para Secciones Colapsables ---
+    // Lógica para Secciones Colapsables
     document.querySelectorAll('.collapsible-header').forEach(header => {
         header.addEventListener('click', () => {
             const content = document.querySelector(header.dataset.target);
             header.classList.toggle('active');
             content.style.display = content.style.display === "block" ? "none" : "block";
         });
-    });
-
-    // --- Lógica para el dropdown de subcategorías ---
-    const categoriaSelect = document.getElementById('categoria');
-    const subcategoriaSelect = document.getElementById('subcategoria');
-
-    categoriaSelect.addEventListener('change', () => {
-        const categoriaId = categoriaSelect.value;
-        subcategoriaSelect.innerHTML = '<option value="">Cargando...</option>';
-        subcategoriaSelect.disabled = true;
-
-        if (!categoriaId) {
-            subcategoriaSelect.innerHTML = '<option value="">Selecciona una categoría principal primero</option>';
-            return;
-        }
-
-        // The AJAX call now points to the same file, which will act as an endpoint.
-        fetch(`insert.php?categoria_id=${categoriaId}`)
-            .then(response => response.json())
-            .then(subcategorias => {
-                subcategoriaSelect.innerHTML = '<option value="">Selecciona una subcategoría</option>';
-                if (subcategorias.length > 0) {
-                    subcategorias.forEach(subcat => {
-                        const option = document.createElement('option');
-                        option.value = subcat.id;
-                        option.textContent = subcat.nombre;
-                        subcategoriaSelect.appendChild(option);
-                    });
-                    subcategoriaSelect.disabled = false;
-                } else {
-                    subcategoriaSelect.innerHTML = '<option value="">No hay subcategorías para esta categoría</option>';
-                }
-            })
-            .catch(error => {
-                console.error('Error cargando subcategorías:', error);
-                subcategoriaSelect.innerHTML = '<option value="">Error al cargar subcategorías</option>';
-            });
     });
 </script>
 
