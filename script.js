@@ -65,24 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function loadMainCategories() {
-        fetch('get_items.php?type=categoria')
-            .then(res => res.json())
-            .then(categories => {
-                categoryButtonsContainer.innerHTML = '';
-                categories.forEach(category => {
-                    const button = document.createElement('button');
-                    button.textContent = category.nombre;
-                    button.dataset.id = category.id;
-                    button.dataset.name = category.nombre;
-                    if (category.nombre.toUpperCase() === 'PARTY') {
-                        button.dataset.mode = 'party';
-                    }
-                    categoryButtonsContainer.appendChild(button);
-                });
-            })
-            .catch(err => console.error("Failed to load main categories:", err));
-    }
+
 
     // --- EVENT LISTENERS SETUP ---
     function setupEventListeners() {
@@ -167,7 +150,7 @@ function startGame(mode) {
     document.getElementById('finishButton').style.display = 'block';
 
 
-    fetch(`get_categorias.php?mode=${mode}`)
+    fetch(`index.php?action=get_subcategory&mode=${mode}`)
         .then(response => response.json())
         .then(data => {
             if (data.error) {
@@ -223,7 +206,7 @@ function startGame(mode) {
             if (document.querySelector('.timer')) document.querySelector('.timer').textContent = '02:40';
             if (document.querySelector('.label-mode')) document.querySelector('.label-mode').textContent = '';        if (document.querySelector('.label-level')) document.querySelector('.label-level').textContent = '';
         if (document.querySelector('.category-text')) document.querySelector('.category-text').textContent = 'Elige modo...';
-        loadMainCategories();
+
     }
 
     function startTimer() {
