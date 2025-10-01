@@ -75,7 +75,6 @@ $isEditor = isset($_GET['editor']) && $_GET['editor'] === 'true';
             text-align: center;
             padding: 10px;
             background-color: #3F2A56;
-            margin-top: 20px;
         }
         .editor-links a {
             color: white;
@@ -152,14 +151,13 @@ $isEditor = isset($_GET['editor']) && $_GET['editor'] === 'true';
     <div class="copyright">
         Tutti Quanti (2022) Derechos Reservados - Moro Colombres - <a href="https://www.moroarte.com">www.moroarte.com</a>
     </div>
+    <?php if ($isEditor): ?>
+    <div class="editor-links">
+        <a href="gestion.php" target="_blank">Gestionar Contenido</a>
+        <a href="insert.php" target="_blank">Insertar Palabras</a>
+    </div>
+    <?php endif; ?>
 </div>
-
-<?php if ($isEditor): ?>
-<div class="editor-links">
-    <a href="gestion.php" target="_blank">Gestionar Contenido</a>
-    <a href="insert.php" target="_blank">Insertar Palabras</a>
-</div>
-<?php endif; ?>
 
 <!-- Modal de Resultados Finales -->
 <div id="resultsModal" class="modal">
