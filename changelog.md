@@ -6,6 +6,11 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/en/1.0.
 
 ## [Unreleased]
 
+### Refactored
+- **Conversión a PHP auto-contenido:** Se refactorizaron las páginas principales (`index.html`, `gestion.html`, `TQinsert.html`) a archivos `.php` (`index.php`, `gestion.php`, `insert.php`). Estos nuevos archivos ahora contienen su propia lógica de backend, eliminando la dependencia de múltiples scripts AJAX y solucionando problemas de carga de datos en el servidor de producción.
+- **Compatibilidad de Base de Datos:** Se refactorizaron todas las consultas a la base de datos del proyecto para eliminar el uso de `get_result()`, asegurando la compatibilidad con entornos de servidor sin el driver `mysqlnd`.
+- **Manejo de Errores:** Se mejoró el manejo de errores en los scripts de backend para reportar fallos de base de datos de forma más clara.
+
 ### Added
 - **Carga Masiva de Palabras**:
   - Se ha creado la página `csvwords.html` para permitir la inserción masiva de palabras en una subcategoría específica mediante una lista separada por comas.
@@ -36,6 +41,8 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/en/1.0.
   - Se han revisado, estandarizado y documentado todos los archivos `.php` del backend para mejorar la legibilidad y el mantenimiento futuro.
 
 ### Fixed
+- **Error Crítico al Iniciar Juego:** Se solucionó un error fatal que impedía la carga de las categorías en la página principal en el servidor de producción. El problema fue resuelto al integrar la lógica de `get_categorias.php` dentro del nuevo `index.php`.
+- **Paneles de Administración:** Se corrigieron los errores que impedían la carga de datos en `gestion.html` y el funcionamiento de `TQinsert.html` en el servidor, aplicando el nuevo patrón de scripts auto-contenidos.
 - **Carga Masiva de Palabras**:
   - Se corrigió un error que impedía la inserción de palabras debido a una consulta SQL incorrecta en `insert_csv_words.php`.
   - Se solucionó un error de "Duplicate entry" al implementar `INSERT IGNORE`, permitiendo que el script omita palabras ya existentes sin detenerse.
