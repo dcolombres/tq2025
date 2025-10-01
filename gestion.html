@@ -130,7 +130,7 @@
     }
 
     function loadSubcategoriasTable() {
-        fetch('get_stats.php').then(response => response.json()).then(data => {
+        fetch('test_logic.php').then(response => response.json()).then(data => {
             subcategoriasTableBody.innerHTML = '';
             if (data.length === 0) {
                 subcategoriasTableBody.innerHTML = '<tr><td colspan="6" style="text-align:center;">No hay datos para mostrar.</td></tr>';
