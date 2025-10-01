@@ -1,3 +1,66 @@
+<?php
+require_once __DIR__ . '/db_config.php';
+
+// --- AJAX ENDPOINT: Get a random subcategory for a given mode ---
+if (isset($_GET['action']) && $_GET['action'] === 'get_subcategory') {
+    header('Content-Type: application/json');
+    $mode = $_GET['mode'] ?? '';
+    if (empty($mode)) {
+        http_response_code(400);
+        die(json_encode(['error' => 'El parámetro "mode" es requerido.']));
+    }
+
+    $conn = new mysqli($servername, $username, $password, $dbname);
+    if ($conn->connect_error) {
+        http_response_code(500);
+        die(json_encode(["error" => "Fallo de conexión."]));
+    }
+
+    $sql = "SELECT s.id, s.nombre, n.nombre, s.permite_validacion_externa FROM subcategorias s JOIN categorias c ON s.categoria_id = c.id LEFT JOIN niveles n ON s.nivel_id = n.id WHERE c.nombre = ? ORDER BY RAND() LIMIT 1";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("s", $mode);
+    $stmt->execute();
+    $stmt->store_result();
+
+    if ($stmt->num_rows > 0) {
+        $stmt->bind_result($id_subcategoria, $nombre_categoria, $nivel, $permite_api);
+        $stmt->fetch();
+        echo json_encode([
+            'id_subcategoria' => $id_subcategoria,
+            'nombre_categoria' => $nombre_categoria,
+            'nivel' => $nivel,
+            'permite_api' => (bool)$permite_api
+        ]);
+    } else {
+        http_response_code(404);
+        echo json_encode(['error' => 'No se encontraron subcategorías para este modo.']);
+    }
+    $stmt->close();
+    $conn->close();
+    exit; // Stop script execution after AJAX response
+}
+
+// --- HELPER FUNCTION: Get main categories for page load ---
+function getMainCategories() {
+    global $servername, $username, $password, $dbname;
+    $conn = new mysqli($servername, $username, $password, $dbname);
+    if ($conn->connect_error) return [];
+    $sql = "SELECT id, nombre FROM categorias ORDER BY nombre ASC";
+    $stmt = $conn->prepare($sql);
+    $stmt->execute();
+    $stmt->store_result();
+    $stmt->bind_result($id, $nombre);
+    $items = [];
+    while ($stmt->fetch()) {
+        $items[] = ['id' => $id, 'nombre' => $nombre];
+    }
+    $stmt->close();
+    $conn->close();
+    return $items;
+}
+
+$isEditor = isset($_GET['editor']) && $_GET['editor'] === 'true';
+?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -16,9 +79,26 @@
         <div class="logo-container"><img src="https://moroarte.com/wp-content/uploads/2023/09/logoTUTTIQUANTI-154x300.png" alt="Tutti Quanti Logo" class="logo"></div>
         <h2>Elegí un modo de juego</h2>
         <div id="category-buttons" class="category-buttons">
-            <!-- Los botones de categoría se cargarán aquí dinámicamente -->
+            <?php
+            $mainCategories = getMainCategories();
+            if (empty($mainCategories)) {
+                echo '<p style="color:red;">No se pudieron cargar los modos de juego. Revisa la conexión a la base de datos.</p>';
+            } else {
+                foreach ($mainCategories as $category) {
+                    $mode = (strtoupper($category['nombre']) === 'PARTY') ? 'party' : htmlspecialchars($category['nombre']);
+                    printf('<button data-id="%d" data-name="%s" data-mode="%s">%s</button>',
+                        $category['id'],
+                        htmlspecialchars($category['nombre']),
+                        $mode,
+                        htmlspecialchars($category['nombre'])
+                    );
+                }
+            }
+            ?>
         </div>
-        <button id="instructions-button" class="instructions-trigger"><i class="fas fa-info-circle"></i></button>
+        <div>
+            <button id="instructions-button" class="instructions-trigger"><i class="fas fa-info-circle"></i></button>
+        </div>
     </div>
 
     <!-- Encabezado del Juego -->
@@ -58,6 +138,13 @@
         Tutti Quanti (2022) Derechos Reservados - Moro Colombres - <a href="https://www.moroarte.com">www.moroarte.com</a>
     </div>
 </div>
+
+<?php if ($isEditor): ?>
+<div style="text-align: center; padding: 10px; background: #333;">
+    <a href="gestion.php" style="color:white; margin: 0 15px;">Gestionar</a>
+    <a href="insert.php" style="color:white; margin: 0 15px;">Insertar</a>
+</div>
+<?php endif; ?>
 
 <!-- Modal de Resultados Finales -->
 <div id="resultsModal" class="modal">
