@@ -10,63 +10,30 @@ $conn = new mysqli($servername, $username, $password, $dbname);
 
 if ($conn->connect_error) {
     http_response_code(500);
-    die(json_encode(["error" => "Conexión fallida: " . $conn->connect_error]));
+    die(json_encode(['error' => 'Conexión fallida: ' . $conn->connect_error]));
 }
 
-$sql = "
-    SELECT 
-        s.id AS subcategoria_id,
-        c.nombre AS categoria, 
-        n.nombre AS nivel,
-        s.nombre AS subcategoria, 
-        s.permite_validacion_externa,
-        COUNT(p.id) AS cantidad_palabras
-    FROM 
-        subcategorias s
-    JOIN 
-        categorias c ON s.categoria_id = c.id
-    LEFT JOIN
-        niveles n ON s.nivel_id = n.id
-    LEFT JOIN 
-        palabras p ON s.id = p.subcategoria_id
-    GROUP BY 
-        s.id, c.nombre, n.nombre, s.nombre, s.permite_validacion_externa
-    ORDER BY 
-        c.nombre, n.nombre, s.nombre;
-";
-
+// --- DIAGNOSTIC QUERY ---
+$sql = "SELECT 1";
 $stmt = $conn->prepare($sql);
+
 if (!$stmt) {
     http_response_code(500);
-    die(json_encode(['error' => 'Fallo en prepare(): ' . $conn->error]));
+    die(json_encode(['error' => 'Fallo en prepare() para la consulta de diagnóstico.', 'details' => $conn->error]));
 }
 
 if (!$stmt->execute()) {
     http_response_code(500);
-    die(json_encode(['error' => 'Fallo en execute(): ' . $stmt->error]));
+    die(json_encode(['error' => 'Fallo en execute() para la consulta de diagnóstico.', 'details' => $stmt->error]));
 }
 
-if (!$stmt->store_result()) {
-    http_response_code(500);
-    die(json_encode(['error' => 'Fallo en store_result(): ' . $stmt->error]));
-}
+$stmt->store_result();
+$stmt->bind_result($one);
+$stmt->fetch();
 
-$stmt->bind_result($subcategoria_id, $categoria, $nivel, $subcategoria, $permite_validacion_externa, $cantidad_palabras);
-
-$stats = [];
-while ($stmt->fetch()) {
-    $stats[] = [
-        'subcategoria_id' => $subcategoria_id,
-        'categoria' => $categoria,
-        'nivel' => $nivel,
-        'subcategoria' => $subcategoria,
-        'permite_validacion_externa' => $permite_validacion_externa,
-        'cantidad_palabras' => $cantidad_palabras
-    ];
-}
+// Si llegamos aquí, el script y la conexión funcionan. El problema es la consulta SQL original.
+die(json_encode(['success' => true, 'message' => 'La consulta de diagnóstico se ejecutó correctamente.', 'data' => $one]));
 
 $stmt->close();
 $conn->close();
-
-echo json_encode($stats);
 ?>
