@@ -1,64 +1,51 @@
 <?php
 header('Content-Type: application/json');
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
+
 require_once __DIR__ . '/db_config.php';
 
-// Silenciar errores para un entorno de producción
-error_reporting(0);
-ini_set('display_errors', 0);
-
-if (!isset($_GET['mode']) || empty($_GET['mode'])) {
+$mode = $_GET['mode'] ?? '';
+if (empty($mode)) {
     http_response_code(400);
-    echo json_encode(['error' => 'El parámetro "mode" es requerido.']);
-    exit;
+    die(json_encode(['error' => 'El parámetro "mode" es requerido.']));
 }
 
-$mode = $_GET['mode'];
 $conn = new mysqli($servername, $username, $password, $dbname);
-
 if ($conn->connect_error) {
     http_response_code(500);
-    echo json_encode(["error" => "Fallo de conexión: " . $conn->connect_error]);
-    exit;
+    die(json_encode(["error" => "Fallo de conexión: " . $conn->connect_error]));
 }
 
-// 1. Buscar el ID de la categoría por su nombre
-$id_categoria = null;
-$stmt = $conn->prepare("SELECT id FROM categorias WHERE nombre = ?");
-$stmt->bind_param("s", $mode);
-$stmt->execute();
-$stmt->store_result();
-$stmt->bind_result($id_categoria);
-$stmt->fetch();
-$stmt->close();
-
-if (is_null($id_categoria)) {
-    http_response_code(404);
-    echo json_encode(['error' => 'El modo de juego no fue encontrado.']);
-    $conn->close();
-    exit;
-}
-
-// 2. Seleccionar una subcategoría aleatoria con JOIN para obtener el nivel
-$id_subcategoria = null;
-$nombre_categoria = null;
-$nivel = null;
-$permite_api = null;
-
-$sql = "SELECT s.id, s.nombre, n.nombre, s.permite_validacion_externa 
-        FROM subcategorias s 
-        LEFT JOIN niveles n ON s.nivel_id = n.id 
-        WHERE s.categoria_id = ? 
-        ORDER BY RAND() 
-        LIMIT 1";
+$sql = "
+    SELECT s.id, s.nombre, n.nombre, s.permite_validacion_externa 
+    FROM subcategorias s
+    JOIN categorias c ON s.categoria_id = c.id
+    LEFT JOIN niveles n ON s.nivel_id = n.id
+    WHERE c.nombre = ?
+    ORDER BY RAND()
+    LIMIT 1
+";
 
 $stmt = $conn->prepare($sql);
-$stmt->bind_param("i", $id_categoria);
-$stmt->execute();
+if (!$stmt) {
+    http_response_code(500);
+    die(json_encode(['error' => 'Error al preparar la consulta: ' . $conn->error]));
+}
+
+$stmt->bind_param("s", $mode);
+
+if (!$stmt->execute()) {
+    http_response_code(500);
+    die(json_encode(['error' => 'Error al ejecutar la consulta: ' . $stmt->error]));
+}
+
 $stmt->store_result();
-$stmt->bind_result($id_subcategoria, $nombre_categoria, $nivel, $permite_api);
-$stmt->fetch();
 
 if ($stmt->num_rows > 0) {
+    $stmt->bind_result($id_subcategoria, $nombre_categoria, $nivel, $permite_api);
+    $stmt->fetch();
+    
     $subcategory = [
         'id_subcategoria' => $id_subcategoria,
         'nombre_categoria' => $nombre_categoria,
