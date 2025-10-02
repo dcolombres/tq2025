@@ -72,7 +72,7 @@ function get_subcategorias_options($selected_id) {
     require __DIR__ . '/db_config.php'; 
     $conn = new mysqli($servername, $username, $password, $dbname); 
     if ($conn->connect_error) return '<option value="">Error DB</option>'; 
-    $sql = "SELECT s.id, s.nombre, n.nombre as nivel_nombre, c.nombre as categoria_nombre FROM subcategorias s JOIN niveles n ON s.nivel_id = n.id JOIN categorias c ON s.categoria_id = c.id ORDER BY c.nombre, n.nombre, s.nombre";
+    $sql = "SELECT s.id, s.nombre, n.nombre as nivel_nombre, c.nombre as categoria_nombre FROM subcategorias s LEFT JOIN niveles n ON s.nivel_id = n.id LEFT JOIN categorias c ON s.categoria_id = c.id ORDER BY c.nombre, n.nombre, s.nombre";
     $stmt = $conn->prepare($sql); 
     if (!$stmt || !$stmt->execute()) { return '<option value="">ERROR</option>'; }
     $stmt->store_result();
