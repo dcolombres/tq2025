@@ -14,6 +14,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
         $message = "Error de Conexión: " . $conn->connect_error;
         $message_type = 'error';
     } else {
+        $conn->set_charset("utf8mb4");
         $action = $_POST['form_action'];
         $subcategoria_id_post = (int)($_POST['subcategoria_id'] ?? 0);
         try {
@@ -72,6 +73,7 @@ function get_subcategorias_options($selected_id) {
     require __DIR__ . '/db_config.php'; 
     $conn = new mysqli($servername, $username, $password, $dbname); 
     if ($conn->connect_error) return '<option value="">Error DB</option>'; 
+    $conn->set_charset("utf8mb4"); 
     $sql = "SELECT s.id, s.nombre, n.nombre as nivel_nombre, c.nombre as categoria_nombre FROM subcategorias s LEFT JOIN niveles n ON s.nivel_id = n.id LEFT JOIN categorias c ON s.categoria_id = c.id ORDER BY c.nombre, n.nombre, s.nombre";
     $stmt = $conn->prepare($sql); 
     if (!$stmt || !$stmt->execute()) { return '<option value="">ERROR</option>'; }
@@ -85,7 +87,7 @@ function get_subcategorias_options($selected_id) {
     }
     $stmt->close(); $conn->close(); return $options;
 }
-function getWordsForSubcategory($id) { require __DIR__ . '/db_config.php'; $conn = new mysqli($servername, $username, $password, $dbname); if ($conn->connect_error) return []; $sql = "SELECT id, palabra FROM palabras WHERE subcategoria_id = ? ORDER BY palabra ASC"; $stmt = $conn->prepare($sql); $stmt->bind_param("i", $id); $stmt->execute(); $stmt->store_result(); $stmt->bind_result($word_id, $palabra); $words = []; while ($stmt->fetch()) { $words[] = ['id' => $word_id, 'palabra' => $palabra]; } $stmt->close(); $conn->close(); return $words; }
+function getWordsForSubcategory($id) { require __DIR__ . '/db_config.php'; $conn = new mysqli($servername, $username, $password, $dbname); if ($conn->connect_error) return []; $conn->set_charset("utf8mb4"); $sql = "SELECT id, palabra FROM palabras WHERE subcategoria_id = ? ORDER BY palabra ASC"; $stmt = $conn->prepare($sql); $stmt->bind_param("i", $id); $stmt->execute(); $stmt->store_result(); $stmt->bind_result($word_id, $palabra); $words = []; while ($stmt->fetch()) { $words[] = ['id' => $word_id, 'palabra' => $palabra]; } $stmt->close(); $conn->close(); return $words; }
 
 ?>
 <!DOCTYPE html>
