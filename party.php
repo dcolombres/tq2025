@@ -190,7 +190,7 @@
 <body>
     <div class="container">
         <div class="logo-container">
-            <a href="index.html">
+            <a href="index.php">
                 <img src="https://moroarte.com/wp-content/uploads/2023/09/logoTUTTIQUANTI-154x300.png" alt="Tutti Quanti Logo" class="logo">
             </a>
         </div>

@@ -44,8 +44,8 @@ body {
 }
 
 .logo {
-    height: 70px;
-    width: auto;
+    max-width: 75px;
+    height: auto;
 }
 
 /* New Game Header */
