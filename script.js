@@ -33,25 +33,6 @@ document.addEventListener('DOMContentLoaded', () => {
         hardResetGame();
         generateAlphabetGrid();
         setupEventListeners();
-        if (isEditorMode) addEditorButtons();
-    }
-
-    function addEditorButtons() {
-        const controls = document.querySelector('.header-controls');
-        const gestionButton = document.createElement('a');
-        gestionButton.href = 'gestion.php';
-        gestionButton.target = '_blank';
-        gestionButton.className = 'editor-button';
-        gestionButton.innerHTML = '<i class="fas fa-cog"></i> Gestión';
-
-        const insertButton = document.createElement('a');
-        insertButton.href = 'insert.php';
-        insertButton.target = '_blank';
-        insertButton.className = 'editor-button';
-        insertButton.innerHTML = '<i class="fas fa-plus-square"></i> Insertar';
-        
-        controls.appendChild(gestionButton);
-        controls.appendChild(insertButton);
     }
 
     function generateAlphabetGrid() {
@@ -79,9 +60,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-    document.getElementById('change-mode-button').addEventListener('click', () => {
-        window.location.reload();
-    });
+        document.getElementById('change-mode-button').addEventListener('click', () => {
+            window.location.reload();
+        });
 
         document.getElementById('new-round-button').addEventListener('click', () => {
             if (currentMode) {
@@ -227,9 +208,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const answersConditionMet = filledInputs >= 15;
 
             if (!timeConditionMet && !answersConditionMet) {
-                showCustomAlert('Debés esperar 1 minuto o rellenar un mínimo de 15 palabras para activar el TUTTI QUANTI.
-
-Recordá que las respuestas incorrectas y vacías restan puntos.');
+                showCustomAlert('Debés esperar 1 minuto o rellenar un mínimo de 15 palabras para activar el TUTTI QUANTI.\n\nRecordá que las respuestas incorrectas y vacías restan puntos.');
                 return;
             }
         }

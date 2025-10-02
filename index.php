@@ -70,22 +70,6 @@ $isEditor = isset($_GET['editor']) && $_GET['editor'] === 'true';
     <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link rel="stylesheet" href="style.css">
-    <style>
-        .editor-links {
-            text-align: center;
-            padding: 10px;
-            background-color: #3F2A56;
-        }
-        .editor-links a {
-            color: white;
-            margin: 0 15px;
-            text-decoration: none;
-            font-weight: bold;
-        }
-        .editor-links a:hover {
-            text-decoration: underline;
-        }
-    </style>
 </head>
 <body>
 
@@ -153,13 +137,14 @@ $isEditor = isset($_GET['editor']) && $_GET['editor'] === 'true';
     <div class="copyright">
         Tutti Quanti (2022) Derechos Reservados - Moro Colombres - <a href="https://www.moroarte.com">www.moroarte.com</a>
     </div>
-    <?php if ($isEditor): ?>
-    <div class="editor-links">
-        <a href="gestion.php" target="_blank">Gestionar Contenido</a>
-        <a href="insert.php" target="_blank">Insertar Palabras</a>
-    </div>
-    <?php endif; ?>
 </div>
+
+<?php if ($isEditor): ?>
+<div style="text-align: center; padding: 10px; background: #333;">
+    <a href="gestion.php" style="color:white; margin: 0 15px;">Gestionar</a>
+    <a href="insert.php" style="color:white; margin: 0 15px;">Insertar</a>
+</div>
+<?php endif; ?>
 
 <!-- Modal de Resultados Finales -->
 <div id="resultsModal" class="modal">
