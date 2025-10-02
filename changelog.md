@@ -4,6 +4,30 @@ Todas las modificaciones notables a este proyecto serán documentadas en este ar
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2025-10-01]
+
+### Added
+- **Panel de Gestión (`gestion.php`):**
+  - Creado un panel de control centralizado para toda la base de datos.
+  - Permite Crear, Leer, Actualizar y Eliminar (CRUD) Categorías, Niveles y Subcategorías.
+  - Incluye una vista para gestionar (añadir, editar, eliminar) las palabras específicas de cada subcategoría.
+  - Funcionalidad para activar/desactivar la validación externa por subcategoría.
+- **Herramienta de Inserción (`insert.php`):**
+  - Unificada la funcionalidad de inserción de palabras.
+  - Permite tanto la carga masiva de palabras separadas por comas como la visualización y gestión de las palabras ya existentes en una subcategoría.
+
+### Changed
+- **Arquitectura General:** Se refactorizó gran parte del proyecto a un modelo de scripts PHP auto-contenidos y auto-enviables, eliminando la dependencia de múltiples archivos AJAX que causaban problemas en el servidor de producción.
+- **`index.php`:** Convertido a PHP para manejar el "modo editor" y para cargar dinámicamente las categorías de juego sin AJAX, solucionando un error crítico que impedía iniciar partidas.
+
+### Fixed
+- **Compatibilidad con Servidor:** Solucionado el error fatal y persistente que impedía la ejecución de scripts en el servidor. La causa raíz era una combinación de problemas de alcance de variables y la falta del driver `mysqlnd`. La nueva arquitectura soluciona esto.
+- **Errores de Sintaxis:** Corregidos múltiples errores de sintaxis en PHP que causaban que las páginas no se cargaran.
+- **Consistencia de UI:** Unificado el tamaño del logo y los enlaces en `party.php` e `index.php`.
+
+### Removed
+- Se eliminaron más de 10 archivos obsoletos, incluyendo `gestion.html`, `TQinsert.html`, `bulk_insert.php`, `csvwords.html`, y todos los scripts de backend individuales (`get_items.php`, `create_structure.php`, etc.), centralizando la lógica en los nuevos archivos principales.
+
 ## [Unreleased]
 
 ### Added
