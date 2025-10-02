@@ -3,216 +3,137 @@ ini_set('display_errors', 1);
 error_reporting(E_ALL);
 require_once __DIR__ . '/db_config.php';
 
-// --- GLOBAL VARIABLES ---
 $message = '';
-$message_type = ''; // 'success' or 'error'
+$message_type = 'success';
+$selected_subcategoria_id = (int)($_GET['subcategoria_id'] ?? 0);
 
-// --- HELPER FUNCTIONS ---
-function get_subcategorias_options() {
-    global $servername, $username, $password, $dbname;
+// --- ACTION HANDLING ---
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
     $conn = new mysqli($servername, $username, $password, $dbname);
     if ($conn->connect_error) {
-        return '<option value="">Error al conectar a la BD</option>';
-    }
-
-    $sql = "SELECT s.id, s.nombre, n.nombre as nivel_nombre, c.nombre as categoria_nombre
-            FROM subcategorias s
-            JOIN niveles n ON s.nivel_id = n.id
-            JOIN categorias c ON s.categoria_id = c.id
-            ORDER BY c.nombre, n.nombre, s.nombre";
-    
-    $stmt = $conn->prepare($sql);
-    if (!$stmt || !$stmt->execute()) {
-        return '<option value="">ERROR: ' . htmlspecialchars($conn->error) . '</option>';
-    }
-
-    $stmt->store_result();
-    $stmt->bind_result($id, $nombre, $nivel_nombre, $categoria_nombre);
-
-    $options = '<option value="">Selecciona una subcategoría</option>';
-    if ($stmt->num_rows > 0) {
-        while ($stmt->fetch()) {
-            $display_name = htmlspecialchars("$categoria_nombre > $nivel_nombre > $nombre");
-            $options .= "<option value=\"".htmlspecialchars($id)."\">$display_name</option>";
-        }
-    } else {
-        $options = '<option value="">No hay subcategorías disponibles</option>';
-    }
-    
-    $stmt->close();
-    $conn->close();
-    return $options;
-}
-
-// --- ACTION ROUTER ---
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $conn = new mysqli($servername, $username, $password, $dbname);
-    if ($conn->connect_error) {
-        $message = 'Error de conexión a la base de datos.';
+        $message = "Error de Conexión: " . $conn->connect_error;
         $message_type = 'error';
     } else {
-        if (isset($_POST['form_action'])) {
-            if ($_POST['form_action'] === 'insert_words') {
-                $palabras_str = isset($_POST['palabras']) ? trim($_POST['palabras']) : '';
-                $subcategoria_id = isset($_POST['subcategoria_id']) ? (int)$_POST['subcategoria_id'] : 0;
-                if (empty($palabras_str) || $subcategoria_id === 0) {
-                    $message = 'Debes seleccionar una subcategoría e ingresar al menos una palabra.';
-                    $message_type = 'error';
-                } else {
-                    $conn->begin_transaction();
-                    try {
-                        $palabras_arr = array_filter(array_unique(array_map('trim', explode(',', $palabras_str))));
-                        $sql = "INSERT IGNORE INTO palabras (subcategoria_id, palabra, letra) VALUES (?, ?, ?)";
-                        $stmt = $conn->prepare($sql);
-                        $inserted_count = 0;
-                        foreach ($palabras_arr as $palabra) {
-                            if(empty($palabra)) continue;
-                            $letra = mb_strtoupper(mb_substr($palabra, 0, 1, 'UTF-8'), 'UTF-8');
-                            $stmt->bind_param("iss", $subcategoria_id, $palabra, $letra);
-                            $stmt->execute();
-                            if ($stmt->affected_rows > 0) $inserted_count++;
-                        }
-                        $conn->commit();
-                        $stmt->close();
-                        $skipped_count = count($palabras_arr) - $inserted_count;
-                        $message = "Proceso completado. Palabras nuevas: $inserted_count. Duplicadas omitidas: $skipped_count.";
-                        $message_type = 'success';
-                    } catch (Exception $e) {
-                        $conn->rollback();
-                        $message = "Error de base de datos: " . $e->getMessage();
-                        $message_type = 'error';
+        $action = $_POST['form_action'];
+        $subcategoria_id_post = (int)($_POST['subcategoria_id'] ?? 0);
+        try {
+            $conn->begin_transaction();
+            if ($action === 'bulk_add') {
+                $palabras_str = trim($_POST['palabras'] ?? '');
+                if ($subcategoria_id_post > 0 && !empty($palabras_str)) {
+                    $palabras_arr = array_filter(array_unique(array_map('trim', explode(',', $palabras_str))));
+                    $stmt = $conn->prepare("INSERT IGNORE INTO palabras (subcategoria_id, palabra, letra) VALUES (?, ?, ?)");
+                    $inserted_count = 0;
+                    foreach ($palabras_arr as $palabra) {
+                        if(empty($palabra)) continue;
+                        $letra = mb_strtoupper(mb_substr($palabra, 0, 1, 'UTF-8'), 'UTF-8');
+                        $stmt->bind_param("iss", $subcategoria_id_post, $palabra, $letra);
+                        $stmt->execute();
+                        if ($stmt->affected_rows > 0) $inserted_count++;
                     }
+                    $stmt->close();
+                    $skipped_count = count($palabras_arr) - $inserted_count;
+                    $message = "Proceso completado. Palabras nuevas: $inserted_count. Duplicadas omitidas: $skipped_count.";
                 }
-            } elseif ($_POST['form_action'] === 'create_structure') {
-                $categoria_nombre = isset($_POST['categoria_principal']) ? trim($_POST['categoria_principal']) : '';
-                $nivel_nombre = isset($_POST['nivel']) ? trim($_POST['nivel']) : '';
-                $subcategoria_str = isset($_POST['subcategoria']) ? trim($_POST['subcategoria']) : '';
-                if (empty($categoria_nombre) || empty($nivel_nombre) || empty($subcategoria_str)) {
-                    $message = 'Todos los campos para crear estructura son obligatorios.';
-                    $message_type = 'error';
-                } else {
-                     $conn->begin_transaction();
-                    try {
-                        $stmt = $conn->prepare("SELECT id FROM categorias WHERE nombre = ?");
-                        $stmt->bind_param("s", $categoria_nombre);
-                        $stmt->execute(); $stmt->store_result(); $stmt->bind_result($categoria_id);
-                        if (!$stmt->fetch()) { $stmt->close(); $stmt = $conn->prepare("INSERT INTO categorias (nombre) VALUES (?)"); $stmt->bind_param("s", $categoria_nombre); $stmt->execute(); $categoria_id = $conn->insert_id; } $stmt->close();
-                        $stmt = $conn->prepare("SELECT id FROM niveles WHERE nombre = ?");
-                        $stmt->bind_param("s", $nivel_nombre);
-                        $stmt->execute(); $stmt->store_result(); $stmt->bind_result($nivel_id);
-                        if (!$stmt->fetch()) { $stmt->close(); $stmt = $conn->prepare("INSERT INTO niveles (nombre) VALUES (?)"); $stmt->bind_param("s", $nivel_nombre); $stmt->execute(); $nivel_id = $conn->insert_id; } $stmt->close();
-                        $subcategoria_nombres = array_filter(array_map('trim', explode(',', $subcategoria_str)));
-                        $created_count = 0; $skipped_count = 0;
-                        $stmt_check = $conn->prepare("SELECT id FROM subcategorias WHERE nombre = ? AND categoria_id = ? AND nivel_id = ?");
-                        $stmt_insert = $conn->prepare("INSERT INTO subcategorias (nombre, categoria_id, nivel_id) VALUES (?, ?, ?)");
-                        foreach ($subcategoria_nombres as $sub_nombre) {
-                            $stmt_check->bind_param("sii", $sub_nombre, $categoria_id, $nivel_id);
-                            $stmt_check->execute(); $stmt_check->store_result();
-                            if ($stmt_check->fetch()) { $skipped_count++; } else { $stmt_insert->bind_param("sii", $sub_nombre, $categoria_id, $nivel_id); $stmt_insert->execute(); $created_count++; }
-                        }
-                        $stmt_check->close(); $stmt_insert->close();
-                        $conn->commit();
-                        $message = "Estructura creada. Subcategorías nuevas: $created_count. Omitidas: $skipped_count.";
-                        $message_type = 'success';
-                    } catch (Exception $e) {
-                        $conn->rollback();
-                        $message = "Error de base de datos: " . $e->getMessage();
-                        $message_type = 'error';
-                    }
+            } elseif ($action === 'delete_word') {
+                $word_id = (int)($_POST['word_id'] ?? 0);
+                if ($word_id > 0) {
+                    $stmt = $conn->prepare("DELETE FROM palabras WHERE id = ?");
+                    $stmt->bind_param("i", $word_id);
+                    $stmt->execute();
+                    $stmt->close();
+                    $message = "Palabra eliminada.";
+                }
+            } elseif ($action === 'update_word') {
+                $word_id = (int)($_POST['word_id'] ?? 0);
+                $palabra = trim($_POST['palabra'] ?? '');
+                if ($word_id > 0 && !empty($palabra)) {
+                    $letra = mb_strtoupper(mb_substr($palabra, 0, 1, 'UTF-8'), 'UTF-8');
+                    $stmt = $conn->prepare("UPDATE palabras SET palabra = ?, letra = ? WHERE id = ?");
+                    $stmt->bind_param("ssi", $palabra, $letra, $word_id);
+                    $stmt->execute();
+                    $stmt->close();
+                    $message = "Palabra actualizada.";
                 }
             }
+            $conn->commit();
+        } catch (Exception $e) {
+            if ($conn->ping()) $conn->rollback();
+            $message = "Error en la operación: " . $e->getMessage();
+            $message_type = 'error';
         }
-        $conn->close();
+        if ($conn->ping()) $conn->close();
+        header("Location: " . $_SERVER['PHP_SELF'] . '?subcategoria_id=' . $subcategoria_id_post);
+        exit();
     }
 }
+
+function get_subcategorias_options($selected_id) { 
+    require __DIR__ . '/db_config.php'; 
+    $conn = new mysqli($servername, $username, $password, $dbname); 
+    if ($conn->connect_error) return '<option value="">Error DB</option>'; 
+    $sql = "SELECT s.id, s.nombre, n.nombre as nivel_nombre, c.nombre as categoria_nombre FROM subcategorias s JOIN niveles n ON s.nivel_id = n.id JOIN categorias c ON s.categoria_id = c.id ORDER BY c.nombre, n.nombre, s.nombre";
+    $stmt = $conn->prepare($sql); 
+    if (!$stmt || !$stmt->execute()) { return '<option value="">ERROR</option>'; }
+    $stmt->store_result();
+    $stmt->bind_result($id, $nombre, $nivel_nombre, $categoria_nombre);
+    $options = '<option value="">Selecciona una subcategoría...</option>';
+    while ($stmt->fetch()) {
+        $display_name = htmlspecialchars("$categoria_nombre > $nivel_nombre > $nombre");
+        $selected_attr = ($id == $selected_id) ? ' selected' : '';
+        $options .= sprintf('<option value="%d"%s>%s</option>', $id, $selected_attr, $display_name);
+    }
+    $stmt->close(); $conn->close(); return $options;
+}
+function getWordsForSubcategory($id) { require __DIR__ . '/db_config.php'; $conn = new mysqli($servername, $username, $password, $dbname); if ($conn->connect_error) return []; $sql = "SELECT id, palabra FROM palabras WHERE subcategoria_id = ? ORDER BY palabra ASC"; $stmt = $conn->prepare($sql); $stmt->bind_param("i", $id); $stmt->execute(); $stmt->store_result(); $stmt->bind_result($word_id, $palabra); $words = []; while ($stmt->fetch()) { $words[] = ['id' => $word_id, 'palabra' => $palabra]; } $stmt->close(); $conn->close(); return $words; }
 
 ?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Administración de Contenido - Tutti Quanti</title>
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f4f7f9; margin: 0; padding: 2rem; }
-        .main-container { margin: auto; width: 100%; max-width: 700px; }
-        .container { background-color: #fff; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 1.5rem; }
-        h1, h2 { color: #333; text-align: center; margin-top: 0; margin-bottom: 1.5rem; }
-        .form-group { margin-bottom: 1rem; }
-        label { display: block; margin-bottom: 0.5rem; color: #555; font-weight: 600; }
-        input[type="text"], select, textarea { width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; font-size: 1rem; }
-        button { width: 100%; padding: 0.85rem; background-color: #007bff; color: white; border: none; border-radius: 4px; font-size: 1.1rem; font-weight: 600; cursor: pointer; transition: background-color 0.2s; }
-        button:hover { background-color: #0056b3; }
-        .status-message { margin-bottom: 1.5rem; text-align: center; font-weight: 600; padding: 0.75rem; border-radius: 4px; }
-        .status-success { background-color: #d4edda; color: #155724; }
-        .status-error { background-color: #f8d7da; color: #721c24; }
-        .collapsible-header { background-color: #f0f0f0; padding: 1rem; border-radius: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; }
-        .collapsible-header h2 { margin: 0; font-size: 1.2rem; text-align: left; }
-        .collapsible-header .icon::before { content: '►'; font-size: 0.8em; }
-        .collapsible-header.active .icon::before { transform: rotate(90deg); }
-        .collapsible-content { padding: 1.5rem; border: 1px solid #f0f0f0; border-top: none; border-radius: 0 0 8px 8px; display: none; }
-    </style>
+    <title>Gestión de Palabras</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <style> body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f4f7f9; margin: 0; padding: 2rem; } .main-container { margin: auto; width: 100%; max-width: 800px; } .container { background-color: #fff; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 2rem; } h1, h2 { color: #3F2A56; text-align: center; margin-bottom: 1.5rem; } .status-message { margin-bottom: 1.5rem; text-align: center; font-weight: 600; padding: 0.75rem; border-radius: 4px; } .status-success { background-color: #d4edda; color: #155724; } .status-error { background-color: #f8d7da; color: #721c24; } </style>
 </head>
 <body>
-
 <div class="main-container">
-    <?php if (!empty($message)): ?>
-        <div class="status-message status-<?php echo $message_type; ?>"><?php echo htmlspecialchars($message); ?></div>
-    <?php endif; ?>
-
+    <div class="page-header"><a href="index.php"><img src="https://moroarte.com/wp-content/uploads/2023/09/logoTUTTIQUANTI-154x300.png" alt="Tutti Quanti Logo" class="logo"></a><h1>Gestión de Palabras</h1></div>
+    <?php if (!empty($message)): ?><div class="status-message status-<?php echo $message_type; ?>"><?php echo htmlspecialchars($message); ?></div><?php endif; ?>
     <div class="container">
-        <h1>Insertar Palabras</h1>
-        <form id="insert-form" method="POST" action="insert.php">
-            <input type="hidden" name="form_action" value="insert_words">
-            <div class="form-group">
-                <label for="subcategoria">Selecciona la Subcategoría:</label>
-                <select id="subcategoria" name="subcategoria_id" required>
-                    <?php echo get_subcategorias_options(); ?>
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="palabras">Ingresa las Palabras (separadas por coma):</label>
-                <textarea id="palabras" name="palabras" required placeholder="Ej: Argentina, Alemania, Francia" rows="5"></textarea>
-            </div>
-            <button type="submit">Insertar Palabras</button>
+        <h2>1. Selecciona una Subcategoría</h2>
+        <form method="GET" action="insert.php">
+            <select name="subcategoria_id" onchange="this.form.submit()" style="width:100%; padding:10px; font-size:1.1rem;">
+                <?php echo get_subcategorias_options($selected_subcategoria_id); ?>
+            </select>
         </form>
     </div>
 
-    <div class="collapsible-header" data-target="#create-structure-content">
-        <h2><span class="icon"></span> Crear Nueva Estructura (Avanzado)</h2>
-    </div>
-    <div id="create-structure-content" class="collapsible-content">
-        <p>Usa este formulario para crear nuevas categorías, niveles y subcategorías. Si escribes un nombre que ya existe, el sistema lo reutilizará.</p>
-        <form id="create-structure-form" method="POST" action="insert.php">
-            <input type="hidden" name="form_action" value="create_structure">
-            <div class="form-group">
-                <label for="new_categoria">Nombre de la Categoría Principal:</label>
-                <input type="text" id="new_categoria" name="categoria_principal" required placeholder="Ej: CLASICO, EXPANSION 2024">
-            </div>
-            <div class="form-group">
-                <label for="new_nivel">Nombre del Nivel:</label>
-                <input type="text" id="new_nivel" name="nivel" required placeholder="Ej: NIVEL 7, DEPORTES ACUATICOS">
-            </div>
-            <div class="form-group">
-                <label for="new_subcategoria">Nuevas Subcategorías (separadas por coma):</label>
-                <textarea id="new_subcategoria" name="subcategoria" required placeholder="Ej: NATACION, WATERPOLO, REMO" rows="3"></textarea>
-            </div>
-            <button type="submit">Crear Estructura</button>
-        </form>
-    </div>
-
+    <?php if ($selected_subcategoria_id): 
+        $words = getWordsForSubcategory($selected_subcategoria_id);
+    ?>
+        <div class="container">
+            <h2>2. Añadir Palabras en Lote</h2>
+            <form method="POST"><input type="hidden" name="form_action" value="bulk_add"><input type="hidden" name="subcategoria_id" value="<?php echo $selected_subcategoria_id; ?>"><textarea name="palabras" rows="5" placeholder="Palabra1, Palabra2, ..." style="width:100%; padding:10px; font-size:1rem; margin-bottom:10px;"></textarea><button type="submit">Añadir Palabras</button></form>
+        </div>
+        <div class="container">
+            <h2>3. Palabras Existentes (<?php echo count($words); ?>)</h2>
+            <table style="width:100%; border-collapse:collapse;">
+                <thead><tr style="background-color:#3F2A56; color:white;"><th style="padding:12px;">Palabra</th><th style="width:100px; text-align:center; padding:12px;">Acciones</th></tr></thead>
+                <tbody>
+                    <?php if(empty($words)): ?>
+                        <tr><td colspan="2" style="text-align:center; padding:20px;">No hay palabras para esta subcategoría.</td></tr>
+                    <?php else: foreach($words as $word): ?>
+                        <tr>
+                            <td style="padding:8px;"><form method="POST" style="display:flex; gap:10px;"><input type="hidden" name="form_action" value="update_word"><input type="hidden" name="word_id" value="<?php echo $word['id']; ?>"><input type="hidden" name="subcategoria_id" value="<?php echo $selected_subcategoria_id; ?>"><input type="text" name="palabra" value="<?php echo htmlspecialchars($word['palabra']); ?>" style="flex-grow:1; padding:8px;"><button type="submit" class="btn-edit" style="padding:8px;"><i class="fas fa-save"></i></button></form></td>
+                            <td style="text-align:center; padding:8px;"><form method="POST" style="display:inline;" onsubmit="return confirm('¿Eliminar esta palabra?');"><input type="hidden" name="form_action" value="delete_word"><input type="hidden" name="word_id" value="<?php echo $word['id']; ?>"><input type="hidden" name="subcategoria_id" value="<?php echo $selected_subcategoria_id; ?>"><button type="submit" class="btn-delete"><i class="fas fa-trash-alt"></i></button></form></td>
+                        </tr>
+                    <?php endforeach; endif; ?>
+                </tbody>
+            </table>
+        </div>
+    <?php endif; ?>
 </div>
-
-<script>
-    // Lógica para Secciones Colapsables
-    document.querySelectorAll('.collapsible-header').forEach(header => {
-        header.addEventListener('click', () => {
-            const content = document.querySelector(header.dataset.target);
-            header.classList.toggle('active');
-            content.style.display = content.style.display === "block" ? "none" : "block";
-        });
-    });
-</script>
-
 </body>
 </html>
