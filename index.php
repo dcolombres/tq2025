@@ -1,4 +1,5 @@
 <?php
+// Version 2.0 - Forcing update
 require_once __DIR__ . '/db_config.php';
 
 // --- AJAX ENDPOINT: Get a random subcategory for a given mode ---
